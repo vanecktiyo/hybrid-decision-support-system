@@ -1,0 +1,117 @@
+application:
+  name: "Hybrid Multi-Criteria Decision Making System"
+  description: "Generic, parameterizable application for ranking candidates using AHP, TOPSIS, and Random Forest"
+  version: "2.0"
+
+data_source:
+  file_path: "data/raw/candidates.csv"  # Can be CSV or XLSX
+  sheet_name: null                      # For XLSX files, specify sheet name
+  id_column: "ID"                       # Column name for unique identifier
+
+criteria:
+  - name: "GRE_Score"
+    display_name: "GRE Score"
+    source_column: "GRE_Score"
+    type: "numeric"                     # numeric, categorical, binary
+    weight: 0.35
+    normalization: "min_max"            # min_max, z_score, custom
+    range: [260, 340]                   # For numeric: [min, max]
+    description: "Graduate Record Examination Score"
+
+  - name: "TOEFL_Score"
+    display_name: "TOEFL Score"
+    source_column: "TOEFL_Score"
+    type: "numeric"
+    weight: 0.25
+    normalization: "min_max"
+    range: [92, 120]
+    description: "Test of English as a Foreign Language Score"
+
+  - name: "University_Rating"
+    display_name: "University Rating"
+    source_column: "University_Rating"
+    type: "numeric"
+    weight: 0.20
+    normalization: "min_max"
+    range: [1, 5]
+    description: "Rating of the university (1-5 scale)"
+
+  - name: "CGPA"
+    display_name: "Cumulative GPA"
+    source_column: "CGPA"
+    type: "numeric"
+    weight: 0.20
+    normalization: "min_max"
+    range: [0, 4]
+    description: "Cumulative Grade Point Average"
+
+# Classification rules (optional, if you want to filter candidates)
+classification:
+  enabled: false
+  target_column: "Chance_of_Admit"
+  rules:
+    - condition: "GRE_Score < 300"
+      classification: "reject"
+    - condition: "TOEFL_Score < 95"
+      classification: "reject"
+    - default: "accept"
+
+# AHP Configuration
+ahp:
+  enabled: true
+  description: "Analytic Hierarchy Process for weight calculation"
+  comparison_matrix:
+    - [1.0, 1.4, 1.75, 1.75]      # GRE vs TOEFL, University, CGPA
+    - [0.714, 1.0, 1.25, 1.25]    # TOEFL vs GRE, University, CGPA
+    - [0.571, 0.8, 1.0, 1.0]      # University vs others
+    - [0.571, 0.8, 1.0, 1.0]      # CGPA vs others
+  consistency_threshold: 0.1
+
+# TOPSIS Configuration
+topsis:
+  enabled: true
+  description: "Technique for Order Preference by Similarity to Ideal Solution"
+  normalization: "vector"           # vector or min_max
+
+# Machine Learning Configuration
+machine_learning:
+  enabled: true
+  target_column: "Chance_of_Admit"
+  test_size: 0.2
+  random_state: 42
+  
+  algorithms:
+    random_forest:
+      enabled: true
+      hyperparameters:
+        n_estimators: 100
+        max_depth: 10
+        min_samples_split: 5
+        min_samples_leaf: 2
+        random_state: 42
+
+# Hybrid Fusion Configuration
+hybrid:
+  enabled: true
+  description: "Combine TOPSIS and Random Forest predictions"
+  fusion_type: "weighted"            # weighted, voting, ensemble, adaptive
+  weights:
+    topsis: 0.6
+    random_forest: 0.4
+  adaptive:
+    enabled: false
+    confidence_metric: "variance"
+
+# Output Configuration
+output:
+  processed_data: "data/processed/processed_data.csv"
+  final_ranking: "output/final_ranking.csv"
+  detailed_scores: "output/detailed_scores.csv"
+  report: "output/ranking_report.txt"
+  logs: "output/logs.txt"
+
+# Logging Configuration
+logging:
+  level: "INFO"                      # DEBUG, INFO, WARNING, ERROR
+  file: "output/logs.txt"
+  console: true
