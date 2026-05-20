@@ -109,6 +109,9 @@
 }
 .stepper-step.active .step-name { color: var(--accent); font-weight: 600; }
 .stepper-step.completed .step-name { color: var(--text); }
+.stepper-step.clickable { cursor: pointer; }
+.stepper-step.clickable:hover .step-circle { background: var(--primary); border-color: var(--primary); }
+.stepper-step.clickable:hover .step-name { color: var(--accent); }
 .stepper-line {
   flex: 1;
   height: 1px;

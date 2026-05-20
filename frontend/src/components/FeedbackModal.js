@@ -80,7 +80,7 @@ const FeedbackModal = ({ resultId, criteriaColumns = [], onClose }) => {
       <div className="feedback-modal">
         {/* Header */}
         <div className="modal-header">
-          <h3>Validation du classement — Responsable de formation</h3>
+          <h3>Validation du classement</h3>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 

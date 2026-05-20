@@ -50,15 +50,14 @@ const LandingPage = ({ onStart }) => (
     <nav className="landing-nav">
       <div className="landing-nav-inner">
         <div className="landing-brand">
-          <svg className="brand-icon" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="#1B3A6B"/>
-            <path d="M8 22V14l8-6 8 6v8" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M13 22v-5h6v5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg className="brand-icon" viewBox="0 0 60 56" fill="none">
+            <polygon points="30,4  58,20  30,36  2,20"  fill="#1e3a8a"/>
+            <polygon points="30,18 54,31  30,44  6,31"  fill="#2563eb" opacity="0.75"/>
+            <polygon points="30,30 50,41  30,52 10,41"  fill="#3b82f6" opacity="0.5"/>
           </svg>
-          <span className="brand-name">MCDM<span className="brand-pro"> Academic</span></span>
+          <span className="brand-name">Admission<span className="brand-pro"> Ranking</span></span>
         </div>
         <div className="landing-nav-links">
-          <span className="nav-badge">v2.0 · AHP + TOPSIS + ML</span>
           <button className="btn btn-primary" onClick={onStart}>
             Lancer l'application
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -77,8 +76,7 @@ const LandingPage = ({ onStart }) => (
           Décisions objectives et<br />transparentes par critères multiples
         </h1>
         <p className="hero-sub">
-          Combinez l'expertise de l'AHP, la rigueur de TOPSIS et la puissance du Machine Learning
-          pour classer objectivement vos candidats — sans biais subjectif.
+          Un outil d'aide à la décision qui transforme vos critères d'admission en un classement fiable, objectif et explicable.
         </p>
         <div className="hero-actions">
           <button className="btn btn-hero-primary" onClick={onStart}>
@@ -87,13 +85,6 @@ const LandingPage = ({ onStart }) => (
               <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-        </div>
-        <div className="hero-stats">
-          <div className="hero-stat"><span className="hero-stat-val">3</span><span className="hero-stat-lbl">Algorithmes combinés</span></div>
-          <div className="hero-stat-sep"/>
-          <div className="hero-stat"><span className="hero-stat-val">5</span><span className="hero-stat-lbl">Modèles ML comparés</span></div>
-          <div className="hero-stat-sep"/>
-          <div className="hero-stat"><span className="hero-stat-val">4</span><span className="hero-stat-lbl">Tiers de classification</span></div>
         </div>
       </div>
       <div className="hero-bg-shape"/>
@@ -149,15 +140,15 @@ const LandingPage = ({ onStart }) => (
     <footer className="landing-footer">
       <div className="footer-inner">
         <div className="footer-brand">
-          <svg className="brand-icon brand-icon-sm" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.12)"/>
-            <path d="M8 22V14l8-6 8 6v8" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M13 22v-5h6v5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg className="brand-icon brand-icon-sm" viewBox="0 0 60 56" fill="none">
+            <polygon points="30,4  58,20  30,36  2,20"  fill="#ffffff"/>
+            <polygon points="30,18 54,31  30,44  6,31"  fill="#ffffff" opacity="0.65"/>
+            <polygon points="30,30 50,41  30,52 10,41"  fill="#ffffff" opacity="0.35"/>
           </svg>
-          <span>MCDM Academic v2.0</span>
+          <span>Admission Ranking</span>
         </div>
         <p className="footer-copy">
-          Hybrid Multi-Criteria Decision Making System — AHP · TOPSIS · Machine Learning
+          Hybrid Multi-Criteria Decision Making System : AHP · TOPSIS · Machine Learning
         </p>
       </div>
     </footer>

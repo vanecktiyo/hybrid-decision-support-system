@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './CriteriaConfig.css';
 import { apiService } from '../services/api';
 
-const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError }) => {
+const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError, onBack }) => {
   const [numericCriteria, setNumericCriteria] = useState([]);
   const [categoricalCriteria, setCategoricalCriteria] = useState([]);
   const [idColumn, setIdColumn] = useState('ID');
@@ -278,13 +278,20 @@ const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError }) => {
         </div>
       )}
 
-      <button
-        className="btn btn-primary btn-large"
-        onClick={handleProcessData}
-        disabled={totalSelected < 2}
-      >
-        Continuer vers la matrice AHP →
-      </button>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        {onBack && (
+          <button className="btn btn-secondary" onClick={onBack}>
+            ← Retour
+          </button>
+        )}
+        <button
+          className="btn btn-primary btn-large"
+          onClick={handleProcessData}
+          disabled={totalSelected < 2}
+        >
+          Continuer vers la matrice AHP →
+        </button>
+      </div>
     </div>
   );
 };

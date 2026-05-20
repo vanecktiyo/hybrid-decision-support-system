@@ -96,10 +96,10 @@ const AHPMatrix = ({ criteria, onMatrixReady, onError, onBack }) => {
         setCR(response.cr);
         if (response.cr < 0.1) {
           setIsValid(true);
-          setMessage(`✓ Matrice cohérente — CR = ${response.cr.toFixed(4)} (< 0.10)`);
+          setMessage(`✓ Matrice cohérente (CR = ${response.cr.toFixed(4)}, seuil < 0.10)`);
         } else {
           setIsValid(false);
-          setMessage(`⚠ Matrice incohérente — CR = ${response.cr.toFixed(4)} (> 0.10). Révisez vos comparaisons.`);
+          setMessage(`⚠ Matrice incohérente (CR = ${response.cr.toFixed(4)}, seuil > 0.10). Révisez vos comparaisons.`);
         }
       } else {
         onError(response.message || 'Erreur calcul des poids');

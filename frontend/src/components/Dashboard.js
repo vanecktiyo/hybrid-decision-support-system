@@ -25,10 +25,10 @@ const CheckIcon = () => (
 );
 
 const BrandIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-    <rect width="32" height="32" rx="6" fill="rgba(255,255,255,0.15)"/>
-    <path d="M8 22V14l8-6 8 6v8" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M13 22v-5h6v5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg width="28" height="28" viewBox="0 0 60 56" fill="none">
+    <polygon points="30,4  58,20  30,36  2,20"  fill="#ffffff"/>
+    <polygon points="30,18 54,31  30,44  6,31"  fill="#ffffff" opacity="0.65"/>
+    <polygon points="30,30 50,41  30,52 10,41"  fill="#ffffff" opacity="0.35"/>
   </svg>
 );
 
@@ -99,6 +99,18 @@ const Dashboard = () => {
     setCurrentStep('landing');
   };
 
+  const goToStep = (stepId) => {
+    const targetIdx = STEP_IDS.indexOf(stepId);
+    const currentIdx = STEP_IDS.indexOf(currentStep);
+    if (targetIdx >= currentIdx) return;
+    if (targetIdx < STEP_IDS.indexOf('config')) { setCriteria([]); setCurrentConfig(null); }
+    if (targetIdx < STEP_IDS.indexOf('qa_report')) { setFileInfo(null); setQAReport(null); }
+    setResults(null);
+    setError(null);
+    setProcessError(null);
+    setCurrentStep(stepId);
+  };
+
   if (currentStep === 'landing') return <LandingPage onStart={() => setCurrentStep('upload')} />;
 
   const activeIdx = STEP_IDS.indexOf(currentStep);
@@ -109,7 +121,7 @@ const Dashboard = () => {
       <header className="app-topbar">
         <div className="topbar-brand" onClick={handleHome}>
           <BrandIcon />
-          <span className="topbar-brand-name">MCDM<span> Academic</span></span>
+          <span className="topbar-brand-name">Admission<span> Ranking</span></span>
         </div>
         <div className="topbar-divider"/>
         <span className="topbar-title">Système de classement multi-critères</span>
@@ -126,7 +138,10 @@ const Dashboard = () => {
             const cls = isCompleted ? 'completed' : isActive ? 'active' : '';
             return (
               <React.Fragment key={step.id}>
-                <div className={`stepper-step ${cls}`}>
+                <div
+                  className={`stepper-step ${cls}${isCompleted ? ' clickable' : ''}`}
+                  onClick={isCompleted ? () => goToStep(step.id) : undefined}
+                >
                   <div className="step-circle">
                     {isCompleted ? <CheckIcon /> : i + 1}
                   </div>
@@ -165,13 +180,13 @@ const Dashboard = () => {
               <QAReport report={qaReport} filename={fileInfo?.filename} onConfirm={handleQAReportConfirm} onGoBack={handleQAReportBack} />
             )}
             {currentStep === 'config' && (
-              <CriteriaConfig filename={fileInfo?.filename} fileInfo={fileInfo} onConfigReady={handleConfigReady} onError={e => setError(e)} />
+              <CriteriaConfig filename={fileInfo?.filename} fileInfo={fileInfo} onConfigReady={handleConfigReady} onError={e => setError(e)} onBack={() => goToStep('qa_report')} />
             )}
             {currentStep === 'ahp_matrix' && (
               <AHPMatrix criteria={criteria} onMatrixReady={handleAHPMatrixReady} onError={e => setError(e)} onBack={() => setCurrentStep('config')} />
             )}
             {currentStep === 'results' && (
-              <ResultsViewer results={results} criteria={criteria} onError={e => setError(e)} onValidate={() => setShowFeedback(true)} />
+              <ResultsViewer results={results} criteria={criteria} onError={e => setError(e)} onValidate={() => setShowFeedback(true)} onBack={() => goToStep('ahp_matrix')} />
             )}
           </div>
         </div>
@@ -195,7 +210,7 @@ const Dashboard = () => {
       )}
 
       <footer className="app-footer">
-        MCDM Academic v2.0 — Hybrid Multi-Criteria Decision Making System
+        Hybrid Multi-Criteria Decision Making System : AHP · TOPSIS · Machine Learning
       </footer>
 
       {showFeedback && (

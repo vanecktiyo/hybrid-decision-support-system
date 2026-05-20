@@ -110,7 +110,7 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
               <div key={i} className="outlier-item">
                 <span className="outlier-label">{col}</span>
                 <span className="outlier-stats">
-                  {stats.count} valeur(s) — bornes : {stats.lower_bound.toFixed(2)} – {stats.upper_bound.toFixed(2)}
+                  {stats.count} valeur(s) (bornes : {stats.lower_bound.toFixed(2)} à {stats.upper_bound.toFixed(2)})
                 </span>
               </div>
             ))}

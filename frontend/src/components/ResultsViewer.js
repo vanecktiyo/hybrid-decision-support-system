@@ -44,7 +44,7 @@ const ShapBar = ({ item }) => {
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
-const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate }) => {
+const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate, onBack }) => {
   const [expandedShap, setExpandedShap] = useState(null);
 
   const handleDownloadCSV = async () => {
@@ -88,14 +88,17 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate 
   const idKey = results.id_column
     || (firstRow ? Object.keys(firstRow).find(k => !SCORE_COLS.has(k)) : 'ID');
 
-  const criteriaCols = criteria.map(c => c.source_column || c.name);
-
   return (
     <div className="results-viewer">
       {/* ── Header ── */}
       <div className="results-header">
         <h2>Résultats du Classement</h2>
         <div className="download-buttons">
+          {onBack && (
+            <button className="btn btn-secondary" onClick={onBack}>
+              ← Retour
+            </button>
+          )}
           <button className="btn btn-primary" onClick={handleDownloadCSV}>
             Télécharger CSV
           </button>
@@ -130,42 +133,11 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate 
         </div>
       </div>
 
-      {/* ── AHP Weights ── */}
-      {statistics.weights && (
-        <div className="weights-section">
-          <div className="section-title-row">
-            <h3>Poids des critères (AHP)</h3>
-            {ahp && (
-              <span className={`cr-badge ${ahp.is_consistent ? 'cr-ok' : 'cr-warn'}`}>
-                CR = {ahp.consistency_ratio?.toFixed(4)}
-                {ahp.is_consistent ? ' ✓' : ' ✗'}
-              </span>
-            )}
-          </div>
-          <div className="weights-grid">
-            {Object.entries(statistics.weights).map(([criterion, weight]) => (
-              <div key={criterion} className="weight-item">
-                <span className="weight-name">{criterion}</span>
-                <div className="weight-bar">
-                  <div className="weight-fill" style={{ width: `${(weight || 0) * 100}%` }} />
-                </div>
-                <span className="weight-percent">{((weight || 0) * 100).toFixed(1)}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── ML tier legend ── */}
-      {mlEnabled && (
-        <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#555', marginRight: 4 }}>Tiers ML :</span>
-          {['Excellent', 'Bon', 'Moyen', 'Faible'].map(t => <TierBadge key={t} tier={t} />)}
-          {hasShap && (
-            <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>
-              — Cliquez sur ▶ pour voir la justification SHAP
-            </span>
-          )}
+      {hasShap && (
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ fontSize: 12, color: '#888' }}>
+            Cliquez sur ▶ pour voir la justification SHAP
+          </span>
         </div>
       )}
 
@@ -261,7 +233,7 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate 
           <p className="ml-subtitle">
             Meilleur modèle : <strong>{ml.best_model_display}</strong>
             &nbsp;(F1-macro = {ml.best_f1_macro?.toFixed(4)})
-            &nbsp;— entraîné sur {ml.n_samples} échantillons, {ml.n_features} critères
+            &nbsp;· entraîné sur {ml.n_samples} échantillons, {ml.n_features} critères
             {ml.class_distribution && (
               <> · Distribution : {Object.entries(ml.class_distribution).map(([k, v]) => `${k}:${v}`).join(', ')}</>
             )}
@@ -296,44 +268,6 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate 
         </div>
       )}
 
-      {/* ── Feature Importance ── */}
-      {hasFeatureImportance && (
-        <div className="feature-importance-section">
-          <h3>Importance des critères ({ml.best_model_display})</h3>
-          <div className="weights-grid">
-            {Object.entries(ml.feature_importance)
-              .sort(([, a], [, b]) => b - a)
-              .map(([feature, importance]) => (
-                <div key={feature} className="weight-item">
-                  <span className="weight-name">{feature}</span>
-                  <div className="weight-bar">
-                    <div className="weight-fill ml-fill" style={{ width: `${importance * 100}%` }} />
-                  </div>
-                  <span className="weight-percent">{(importance * 100).toFixed(1)}%</span>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Algorithm info ── */}
-      {topsis?.score_range && (
-        <div className="algorithm-info">
-          <h4>Détails algorithmiques</h4>
-          <ul>
-            <li><strong>AHP</strong> — Normalisation par colonne, échelle Saaty 1–9, CR seuil 0.10</li>
-            <li><strong>TOPSIS</strong> — Plage de scores : [{topsis.score_range[0].toFixed(4)}, {topsis.score_range[1].toFixed(4)}]</li>
-            {mlEnabled
-              ? <>
-                  <li><strong>ML</strong> — Classification 4 tiers (Faible/Moyen/Bon/Excellent), sélection par F1-macro</li>
-                  <li><strong>SHAP</strong> — Valeurs SHAP sur la classe Excellent pour la justification locale</li>
-                  <li><strong>Fusion hybride</strong> — {(hybrid.topsis_weight * 100).toFixed(0)}% TOPSIS + {(hybrid.ml_weight * 100).toFixed(0)}% P(Excellent)</li>
-                </>
-              : <li><strong>Classement</strong> — TOPSIS pur (aucune colonne cible ML fournie)</li>
-            }
-          </ul>
-        </div>
-      )}
     </div>
   );
 };

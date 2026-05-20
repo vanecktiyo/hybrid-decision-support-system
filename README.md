@@ -13,7 +13,7 @@ This application allows any organization to rank candidates based on multiple cr
 **Pipeline:**
 1. **AHP** — compute criterion weights from pairwise comparisons (or use equal weights)
 2. **TOPSIS** — rank candidates using weighted normalized distances
-3. **ML Classification** — classify candidates into 4 levels (Faible / Moyen / Bon / Excellent) using the best cross-validated model among Random Forest, Gradient Boosting, Decision Tree, Logistic Regression, SVM
+3. **ML Classification** — classify ccandidates into 4 levels (Faible / Moyen / Bon / Excellent) using the best cross-validated model among Random Forest, Gradient Boosting, Decision Tree, Logistic Regression, SVM
 4. **Hybrid Fusion** — combine TOPSIS score (60%) and ML probability of Excellent (40%) into a final score
 5. **SHAP** — explain the top candidates' scores using feature-level contributions
 6. **Feedback loop** — experts validate and correct predicted tiers; validated data is stored and used to improve the ML model on future runs

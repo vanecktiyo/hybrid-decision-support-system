@@ -246,7 +246,7 @@ def process_data():
         final_df.to_csv(str(result_file), index=False)
 
         # -- STEP 8: Build response --------------------------------------------------
-        top_n = 10
+        top_n = 20
         top_df = (
             final_df.sort_values("Final_Score", ascending=False)
             .head(top_n)
