@@ -3,16 +3,23 @@ import './QAReport.css';
 
 const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
   const [agreed, setAgreed] = useState(false);
+  const [expandedOutlier, setExpandedOutlier] = useState(null);
+  const [missingStrategy, setMissingStrategy] = useState('zero');
+
+  const toggleOutlier = (col) => setExpandedOutlier(prev => prev === col ? null : col);
 
   if (!report) return null;
 
+  const criticalIssues = report.critical_issues || [];
+  const hasBlockingIssues = criticalIssues.length > 0;
   const qualityScore = parseFloat(report.quality_score) || 0;
   const recommendation = report.recommendation || { level: 'warning', message: 'Vérifiez les données avant de continuer.' };
 
   const scoreColor = qualityScore >= 80 ? 'var(--success)' : qualityScore >= 60 ? 'var(--warning)' : 'var(--error)';
   const recClass   = recommendation?.level === 'good' ? 'recommendation-good'
                    : recommendation?.level === 'warning' ? 'recommendation-warning'
-                   : 'recommendation-error';
+                   : recommendation?.level === 'error' ? 'recommendation-error'
+                   : 'recommendation-warning';
 
   return (
     <div className="qa-report">
@@ -20,6 +27,24 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
         <h2>Rapport qualité des données</h2>
         <p className="filename">Fichier : {filename}</p>
       </div>
+
+      {/* Problèmes bloquants */}
+      {hasBlockingIssues && (
+        <div className="critical-issues-box">
+          <div className="critical-issues-title">
+            <span className="critical-icon">⛔</span>
+            Fichier non conforme : impossible de continuer
+          </div>
+          <ul className="critical-issues-list">
+            {criticalIssues.map((issue, i) => (
+              <li key={i}>{issue}</li>
+            ))}
+          </ul>
+          <p className="critical-issues-hint">
+            Corrigez le fichier et importez-le à nouveau.
+          </p>
+        </div>
+      )}
 
       {/* Score */}
       <div className="quality-card">
@@ -53,11 +78,11 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
           <div className="stat-value">{report.total_criteria_detected}</div>
         </div>
         <div className="stat-box">
-          <div className="stat-label">Texte converti</div>
+          <div className="stat-label">Critères catégoriels</div>
           <div className="stat-value">{report.text_converted.length}</div>
         </div>
         <div className="stat-box">
-          <div className="stat-label">Valeurs aberrantes</div>
+          <div className="stat-label">Critères avec anomalies</div>
           <div className="stat-value">{Object.keys(report.outliers_detected).length}</div>
         </div>
       </div>
@@ -97,25 +122,70 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
               </div>
             ))}
           </div>
-          <p className="missing-note">Les valeurs manquantes ont été remplacées par la médiane de la colonne.</p>
+          <div className="missing-strategy">
+            <label className="missing-strategy-label">
+              Stratégie de remplacement :
+            </label>
+            <select
+              className="missing-strategy-select"
+              value={missingStrategy}
+              onChange={e => setMissingStrategy(e.target.value)}
+            >
+              <option value="mean">Remplacer par la moyenne</option>
+              <option value="median">Remplacer par la médiane</option>
+              <option value="zero">Remplacer par 0</option>
+              <option value="exclude">Exclure les lignes incomplètes</option>
+            </select>
+          </div>
         </div>
       )}
 
       {/* Outliers */}
       {Object.keys(report.outliers_detected).length > 0 && (
         <div className="outliers-section">
-          <h3>Valeurs aberrantes ({Object.keys(report.outliers_detected).length})</h3>
+          <h3>Critères avec anomalies ({Object.keys(report.outliers_detected).length})</h3>
           <div className="outliers-list">
             {Object.entries(report.outliers_detected).map(([col, stats], i) => (
               <div key={i} className="outlier-item">
-                <span className="outlier-label">{col}</span>
-                <span className="outlier-stats">
-                  {stats.count} valeur(s) (bornes : {stats.lower_bound.toFixed(2)} à {stats.upper_bound.toFixed(2)})
-                </span>
+                <div className="outlier-summary">
+                  <span className="outlier-label">{col}</span>
+                  <span className="outlier-stats">
+                    {stats.count} valeur(s) (bornes : {stats.lower_bound.toFixed(2)} à {stats.upper_bound.toFixed(2)})
+                  </span>
+                  {stats.candidates?.length > 0 && (
+                    <button
+                      className="btn-outlier-toggle"
+                      onClick={() => toggleOutlier(col)}
+                      title="Voir les candidats concernés"
+                    >
+                      {expandedOutlier === col ? '▲ Masquer' : '▶ Voir les candidats'}
+                    </button>
+                  )}
+                </div>
+                {expandedOutlier === col && stats.candidates?.length > 0 && (
+                  <div className="outlier-candidates">
+                    <table className="outlier-candidates-table">
+                      <thead>
+                        <tr>
+                          <th>ID candidat</th>
+                          <th>Valeur</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.candidates.map((c, ci) => (
+                          <tr key={ci}>
+                            <td>{c.id}</td>
+                            <td className="outlier-candidate-value">{c.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <p className="outlier-note">Valeurs conservées dans l'analyse. Revérifiez après le classement si nécessaire.</p>
+          <p className="outlier-note">Vérifiez ces valeurs avant de continuer. Elles seront incluses dans l'analyse telles quelles.</p>
         </div>
       )}
 
@@ -150,13 +220,15 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
         <div>
           <button className="btn btn-secondary" onClick={onGoBack}>Changer de fichier</button>
         </div>
-        <div className="agreement">
-          <label className="checkbox-label">
-            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}/>
-            J'ai lu le rapport et je souhaite continuer
-          </label>
-        </div>
-        <button className="btn btn-primary" onClick={onConfirm} disabled={!agreed}>
+        {!hasBlockingIssues && (
+          <div className="agreement">
+            <label className="checkbox-label">
+              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}/>
+              J'ai lu le rapport et je souhaite continuer
+            </label>
+          </div>
+        )}
+        <button className="btn btn-primary" onClick={() => onConfirm(missingStrategy)} disabled={hasBlockingIssues || !agreed}>
           Continuer vers la configuration
         </button>
       </div>

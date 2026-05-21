@@ -65,7 +65,7 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
 
   if (!results) return null;
 
-  const { statistics, ahp, topsis, machine_learning: ml, hybrid } = results;
+  const { statistics, machine_learning: ml, hybrid } = results;
 
   let topResults = results.top_10;
   if (!topResults) {
@@ -76,7 +76,6 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
   if (!statistics) return <div className="error-message">No statistics data available</div>;
 
   const mlEnabled = ml?.enabled === true;
-  const hasFeatureImportance = mlEnabled && ml.feature_importance && Object.keys(ml.feature_importance).length > 0;
   const hasModelResults = mlEnabled && ml.model_results && Object.keys(ml.model_results).length > 0;
   const hasShap = mlEnabled && topResults?.some(r => r.shap_explanation?.length > 0);
 
@@ -113,30 +112,11 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
         </div>
       </div>
 
-      {/* ── Statistics ── */}
-      <div className="statistics-grid">
-        <div className="stat-card">
-          <h4>Candidats</h4>
-          <p className="stat-value">{statistics.total_candidates ?? 'N/A'}</p>
-        </div>
-        <div className="stat-card">
-          <h4>Score max</h4>
-          <p className="stat-value">{statistics.top_score != null ? statistics.top_score.toFixed(4) : 'N/A'}</p>
-        </div>
-        <div className="stat-card">
-          <h4>Score moyen</h4>
-          <p className="stat-value">{statistics.avg_score != null ? statistics.avg_score.toFixed(4) : 'N/A'}</p>
-        </div>
-        <div className="stat-card">
-          <h4>Écart-type</h4>
-          <p className="stat-value">{statistics.std_dev != null ? statistics.std_dev.toFixed(4) : 'N/A'}</p>
-        </div>
-      </div>
 
       {hasShap && (
         <div style={{ marginBottom: 12 }}>
           <span style={{ fontSize: 12, color: '#888' }}>
-            Cliquez sur ▶ pour voir la justification SHAP
+            Cliquez sur ▶ pour voir la justification du classement
           </span>
         </div>
       )}
@@ -160,8 +140,8 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                 <th>Rang</th>
                 <th>ID</th>
                 <th>Score TOPSIS</th>
-                {mlEnabled && <th>P(Excellent)</th>}
-                {mlEnabled && <th>Tier prédit</th>}
+                {mlEnabled && <th>Score ML</th>}
+                {mlEnabled && <th>Classe prédite</th>}
                 <th>Score final</th>
                 {hasShap && <th>Justification</th>}
               </tr>
@@ -203,13 +183,13 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                       <tr className="shap-row">
                         <td colSpan={mlEnabled ? 7 : 5} style={{ padding: '8px 16px', background: '#f8f9fa' }}>
                           <div style={{ fontSize: 12, color: '#555', marginBottom: 6, fontWeight: 600 }}>
-                            Facteurs influençant le tier Excellent (SHAP) :
+                            Facteurs influençant le classement :
                           </div>
                           {row.shap_explanation.map((item, i) => (
                             <ShapBar key={i} item={item} />
                           ))}
                           <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
-                            vert = facteur favorisant Excellent · rouge = facteur défavorisant
+                            vert = facteur favorisant · rouge = facteur défavorisant
                           </div>
                         </td>
                       </tr>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './CriteriaConfig.css';
 import { apiService } from '../services/api';
 
-const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError, onBack }) => {
+const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfigReady, onError, onBack }) => {
   const [numericCriteria, setNumericCriteria] = useState([]);
   const [categoricalCriteria, setCategoricalCriteria] = useState([]);
   const [idColumn, setIdColumn] = useState('ID');
@@ -20,8 +20,12 @@ const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError, onBack }) 
   // global settings
   const [targetColumn, setTargetColumn] = useState('');
   const [potentialTargets, setPotentialTargets] = useState([]);
-  const [missingStrategy, setMissingStrategy] = useState('mean');
-  const [totalMissing, setTotalMissing] = useState(0);
+
+  useEffect(() => {
+    if (!targetColumn) return;
+    setSelectedNumeric(prev => prev.filter(n => n !== targetColumn));
+    setSelectedCategorical(prev => prev.filter(n => n !== targetColumn));
+  }, [targetColumn]);
 
   useEffect(() => {
     loadCriteriaSuggestions();
@@ -57,9 +61,6 @@ const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError, onBack }) 
       });
       setOrdinalMappings(mappings);
 
-      // Count columns with missing values
-      const allCols = [...(data.suggested_criteria || []), ...(data.categorical_columns || [])];
-      setTotalMissing(allCols.filter(c => c.missing > 0).length);
     } catch (error) {
       onError(error.message);
     } finally {
@@ -170,16 +171,18 @@ const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError, onBack }) 
         )}
 
         {numericCriteria.map((crit, idx) => {
+          const isTarget = crit.name === targetColumn;
           const selected = selectedNumeric.includes(crit.name);
           const type = criteriaTypes[crit.name] || 'benefit';
           return (
-            <div key={crit.name} className={`criteria-item ${!selected ? 'criteria-disabled' : ''}`}>
+            <div key={crit.name} className={`criteria-item ${!selected || isTarget ? 'criteria-disabled' : ''}`}>
               <div className="criteria-checkbox">
-                <input type="checkbox" checked={selected} onChange={() => handleToggleNumeric(crit.name)} id={`num-${idx}`} />
+                <input type="checkbox" checked={selected && !isTarget} onChange={() => !isTarget && handleToggleNumeric(crit.name)} disabled={isTarget} id={`num-${idx}`} />
                 <label htmlFor={`num-${idx}`}>
                   {crit.display_name || crit.name}
                   <span className="criteria-range"> ({crit.range?.[0]?.toFixed(1)} – {crit.range?.[1]?.toFixed(1)})</span>
                   {crit.missing > 0 && <span className="missing-badge"> ⚠ {crit.missing} manquants</span>}
+                  {isTarget && <span className="target-badge"> Cible ML</span>}
                 </label>
               </div>
               {selected && (
@@ -199,21 +202,22 @@ const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError, onBack }) 
           <h4>Critères catégoriels ({selectedCategorical.length} sélectionnés)</h4>
           <p className="criteria-hint">
             Attribuez un score numérique à chaque valeur pour définir l'ordre d'importance.
-            Ex : Licence=1, Master=2, Doctorat=3
           </p>
 
           {categoricalCriteria.map((crit, idx) => {
+            const isTarget = crit.name === targetColumn;
             const selected = selectedCategorical.includes(crit.name);
             const type = categoricalTypes[crit.name] || 'benefit';
             const mapping = ordinalMappings[crit.name] || {};
             return (
-              <div key={crit.name} className={`criteria-item ${!selected ? 'criteria-disabled' : ''}`}>
+              <div key={crit.name} className={`criteria-item ${!selected || isTarget ? 'criteria-disabled' : ''}`}>
                 <div className="criteria-checkbox">
-                  <input type="checkbox" checked={selected} onChange={() => handleToggleCategorical(crit.name)} id={`cat-${idx}`} />
+                  <input type="checkbox" checked={selected && !isTarget} onChange={() => !isTarget && handleToggleCategorical(crit.name)} disabled={isTarget} id={`cat-${idx}`} />
                   <label htmlFor={`cat-${idx}`}>
                     {crit.display_name || crit.name}
                     <span className="criteria-range"> ({crit.unique_values.length} valeurs)</span>
                     {crit.missing > 0 && <span className="missing-badge"> ⚠ {crit.missing} manquants</span>}
+                    {isTarget && <span className="target-badge"> Cible ML</span>}
                   </label>
                 </div>
 
@@ -247,19 +251,6 @@ const CriteriaConfig = ({ filename, fileInfo, onConfigReady, onError, onBack }) 
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Missing value strategy */}
-      {totalMissing > 0 && (
-        <div className="config-section">
-          <label>Stratégie pour les valeurs manquantes ({totalMissing} colonne{totalMissing > 1 ? 's' : ''} concernée{totalMissing > 1 ? 's' : ''}) :</label>
-          <select value={missingStrategy} onChange={e => setMissingStrategy(e.target.value)} className="select">
-            <option value="mean">Remplacer par la moyenne</option>
-            <option value="median">Remplacer par la médiane</option>
-            <option value="zero">Remplacer par 0</option>
-            <option value="exclude">Exclure les lignes incomplètes</option>
-          </select>
         </div>
       )}
 

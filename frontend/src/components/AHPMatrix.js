@@ -39,7 +39,7 @@ const snapToSaaty = (value) =>
     Math.abs(opt.value - value) < Math.abs(best.value - value) ? opt : best
   ).value;
 
-const AHPMatrix = ({ criteria, onMatrixReady, onError, onBack }) => {
+const AHPMatrix = ({ criteria, onMatrixReady, onError, onBack, mlEnabled = false }) => {
   const [matrix, setMatrix] = useState([]);
   const [weights, setWeights] = useState(null);
   const [cr, setCR] = useState(null);
@@ -47,6 +47,7 @@ const AHPMatrix = ({ criteria, onMatrixReady, onError, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
   const [message, setMessage] = useState('');
+  const [topsisWeight, setTopsisWeight] = useState(60);
 
   useEffect(() => {
     initializeMatrix();
@@ -118,7 +119,13 @@ const AHPMatrix = ({ criteria, onMatrixReady, onError, onBack }) => {
     }
     if (!isValid && !force) return;
 
-    onMatrixReady({ comparison_matrix: matrix, weights, cr });
+    onMatrixReady({
+      comparison_matrix: matrix,
+      weights,
+      cr,
+      topsis_weight: topsisWeight / 100,
+      ml_weight: (100 - topsisWeight) / 100,
+    });
   };
 
   if (loading) {
@@ -214,6 +221,37 @@ const AHPMatrix = ({ criteria, onMatrixReady, onError, onBack }) => {
                 <span className="weight-value">{((weights[c.name] ?? 0) * 100).toFixed(1)}%</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hybrid fusion weights — only when ML is enabled */}
+      {mlEnabled && (
+        <div className="hybrid-weights-section">
+          <h5>Pondération de la fusion hybride</h5>
+          <p className="hybrid-weights-hint">
+            Définissez la part de chaque algorithme dans le score final.
+          </p>
+          <div className="hybrid-slider-row">
+            <span className="hybrid-label">TOPSIS</span>
+            <span className="hybrid-pct topsis-pct">{topsisWeight}%</span>
+            <input
+              type="range"
+              min={10} max={90} step={5}
+              value={topsisWeight}
+              onChange={e => setTopsisWeight(Number(e.target.value))}
+              className="hybrid-slider"
+            />
+            <span className="hybrid-pct ml-pct">{100 - topsisWeight}%</span>
+            <span className="hybrid-label">ML</span>
+          </div>
+          <div className="hybrid-bar-preview">
+            <div className="hybrid-bar-topsis" style={{ width: `${topsisWeight}%` }}>
+              {topsisWeight >= 20 && `TOPSIS ${topsisWeight}%`}
+            </div>
+            <div className="hybrid-bar-ml" style={{ width: `${100 - topsisWeight}%` }}>
+              {(100 - topsisWeight) >= 20 && `ML ${100 - topsisWeight}%`}
+            </div>
           </div>
         </div>
       )}

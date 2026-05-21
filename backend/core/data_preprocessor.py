@@ -36,6 +36,7 @@ class DataPreprocessor:
             'converted_columns': [],
             'missing_data': {},
             'outliers_detected': {},
+            'critical_issues': [],
             'warnings': [],
             'errors': [],
             'quality_score': 0.0
@@ -119,11 +120,11 @@ class DataPreprocessor:
                 break
         
         if id_column is None:
-            # If no ID found, create one
             logger.warning("No ID column found, creating default ID column")
             self.df.insert(0, 'ID', range(1, len(self.df) + 1))
-            self.validation_report['warnings'].append(
-                "No ID column detected. Auto-generated ID column (1, 2, 3, ...)"
+            self.validation_report['critical_issues'].append(
+                "Aucune colonne identifiant (ID) n'a été détectée dans le fichier. "
+                "Ajoutez une colonne nommée 'ID' contenant un identifiant unique par candidat."
             )
         else:
             # Move ID column to first position
@@ -279,10 +280,17 @@ class DataPreprocessor:
                 outlier_count = outlier_mask.sum()
                 
                 if outlier_count > 0:
+                    outlier_rows = self.df[outlier_mask]
+                    id_col = 'ID' if 'ID' in self.df.columns else self.df.columns[0]
+                    candidates = [
+                        {'id': str(row[id_col]), 'value': round(float(row[col]), 4)}
+                        for _, row in outlier_rows.iterrows()
+                    ]
                     outliers_summary[col] = {
                         'count': int(outlier_count),
                         'lower_bound': float(lower_bound),
-                        'upper_bound': float(upper_bound)
+                        'upper_bound': float(upper_bound),
+                        'candidates': candidates
                     }
                     
                     if outlier_count / len(self.df) > 0.05:  # More than 5%
@@ -305,6 +313,9 @@ class DataPreprocessor:
           >20%  : 0.05 pts/% — structural/optional fields, light penalty
         """
         score = 100.0
+
+        # Critical issues: -40 pts each (blocking problems)
+        score -= len(self.validation_report['critical_issues']) * 40
 
         for col, stats in self.validation_report['missing_data'].items():
             pct = stats['percentage']

@@ -130,7 +130,7 @@ def validate_file(filename):
             cleaned_df.to_excel(str(cleaned_filepath), index=False)
         
         # Build response
-        recommendation = _get_recommendation(report)
+        recommendation = _get_recommendation(report, report.get('critical_issues', []))
         response = {
             'status': 'success',
             'filename': filename,
@@ -142,6 +142,7 @@ def validate_file(filename):
                 'text_converted': report['converted_columns'],
                 'missing_data_summary': report['missing_data'],
                 'outliers_detected': report['outliers_detected'],
+                'critical_issues': report.get('critical_issues', []),
                 'quality_score': report['quality_score'],
                 'warnings': report['warnings'],
                 'errors': report['errors'],
@@ -157,9 +158,15 @@ def validate_file(filename):
         return jsonify({'error': str(e)}), 500
 
 
-def _get_recommendation(report):
-    """Generate recommendation based on quality score.
-    Never returns action='fix' — users can always proceed after reviewing."""
+def _get_recommendation(report, critical_issues=None):
+    """Generate recommendation based on quality score and critical issues."""
+    if critical_issues:
+        return {
+            'level': 'error',
+            'message': 'Le fichier ne respecte pas les exigences minimales. Corrigez les problèmes indiqués ci-dessus avant de continuer.',
+            'action': 'fix'
+        }
+
     score = report['quality_score']
 
     if score >= 80:
@@ -177,8 +184,7 @@ def _get_recommendation(report):
     else:
         return {
             'level': 'warning',
-            'message': f'Score de qualité : {score:.1f}%. Des valeurs manquantes ou des anomalies ont été détectées. '
-                       'Vous pouvez continuer — les colonnes seront configurées à l\'étape suivante.',
+            'message': f'Score de qualité : {score:.1f}%. Des valeurs manquantes ou des anomalies ont été détectées. Vérifiez le rapport avant de continuer.',
             'action': 'review'
         }
 

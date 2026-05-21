@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [currentStep, setCurrentStep] = useState('landing');
   const [fileInfo, setFileInfo] = useState(null);
   const [qaReport, setQAReport] = useState(null);
+  const [missingStrategy, setMissingStrategy] = useState('mean');
   const [criteria, setCriteria] = useState([]);
   const [currentConfig, setCurrentConfig] = useState(null);
   const [results, setResults] = useState(null);
@@ -60,7 +61,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleQAReportConfirm = () => setCurrentStep('config');
+  const handleQAReportConfirm = (strategy) => { setMissingStrategy(strategy); setCurrentStep('config'); };
   const handleQAReportBack = () => { setFileInfo(null); setQAReport(null); setCurrentStep('upload'); };
 
   const handleConfigReady = (config) => {
@@ -77,6 +78,7 @@ const Dashboard = () => {
       const finalConfig = {
         ...currentConfig,
         ahp: { enabled: true, comparison_matrix: ahpData.comparison_matrix, weights: ahpData.weights, cr: ahpData.cr },
+        hybrid: { topsis_weight: ahpData.topsis_weight ?? 0.6, ml_weight: ahpData.ml_weight ?? 0.4 },
       };
       const result = await apiService.processData(fileInfo.filename, finalConfig);
       if (result.status === 'success') { setResults(result); setCurrentStep('results'); }
@@ -89,7 +91,7 @@ const Dashboard = () => {
 
   const handleReset = () => {
     setCurrentStep('upload');
-    setFileInfo(null); setQAReport(null); setCriteria([]);
+    setFileInfo(null); setQAReport(null); setMissingStrategy('mean'); setCriteria([]);
     setCurrentConfig(null); setResults(null);
     setError(null); setProcessError(null); setShowFeedback(false);
   };
@@ -180,10 +182,10 @@ const Dashboard = () => {
               <QAReport report={qaReport} filename={fileInfo?.filename} onConfirm={handleQAReportConfirm} onGoBack={handleQAReportBack} />
             )}
             {currentStep === 'config' && (
-              <CriteriaConfig filename={fileInfo?.filename} fileInfo={fileInfo} onConfigReady={handleConfigReady} onError={e => setError(e)} onBack={() => goToStep('qa_report')} />
+              <CriteriaConfig filename={fileInfo?.filename} fileInfo={fileInfo} missingStrategy={missingStrategy} onConfigReady={handleConfigReady} onError={e => setError(e)} onBack={() => goToStep('qa_report')} />
             )}
             {currentStep === 'ahp_matrix' && (
-              <AHPMatrix criteria={criteria} onMatrixReady={handleAHPMatrixReady} onError={e => setError(e)} onBack={() => setCurrentStep('config')} />
+              <AHPMatrix criteria={criteria} onMatrixReady={handleAHPMatrixReady} onError={e => setError(e)} onBack={() => setCurrentStep('config')} mlEnabled={!!currentConfig?.machine_learning?.target_column} />
             )}
             {currentStep === 'results' && (
               <ResultsViewer results={results} criteria={criteria} onError={e => setError(e)} onValidate={() => setShowFeedback(true)} onBack={() => goToStep('ahp_matrix')} />
