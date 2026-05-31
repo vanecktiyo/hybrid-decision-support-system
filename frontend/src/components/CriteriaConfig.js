@@ -8,24 +8,42 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
   const [idColumn, setIdColumn] = useState('ID');
   const [loading, setLoading] = useState(true);
 
-  // numeric selections
+  // numeric selections (all criteria are benefit: higher = better)
   const [selectedNumeric, setSelectedNumeric] = useState([]);
-  const [criteriaTypes, setCriteriaTypes] = useState({});
 
   // categorical selections + ordinal mappings
   const [selectedCategorical, setSelectedCategorical] = useState([]);
-  const [categoricalTypes, setCategoricalTypes] = useState({});
   const [ordinalMappings, setOrdinalMappings] = useState({});
 
   // global settings
   const [targetColumn, setTargetColumn] = useState('');
   const [potentialTargets, setPotentialTargets] = useState([]);
+  const [targetMapping, setTargetMapping] = useState({});
 
   useEffect(() => {
-    if (!targetColumn) return;
+    if (!targetColumn) { setTargetMapping({}); return; }
     setSelectedNumeric(prev => prev.filter(n => n !== targetColumn));
     setSelectedCategorical(prev => prev.filter(n => n !== targetColumn));
-  }, [targetColumn]);
+    const target = potentialTargets.find(t => t.name === targetColumn);
+    if (target) {
+      // Known tier labels with semantic order (0 = worst, highest = best)
+      const KNOWN_ORDER = {
+        'faible': 0, 'moyen': 1, 'bon': 2, 'excellent': 3,
+        'refusé': 0, 'refuse': 0, 'admis': 1, 'admitted': 1,
+        'non': 0, 'no': 0, 'oui': 1, 'yes': 1,
+        'low': 0, 'medium': 1, 'high': 2,
+      };
+      const autoMap = {};
+      const vals = target.unique_values;
+      const allKnown = vals.every(v => v.toLowerCase() in KNOWN_ORDER);
+      if (allKnown) {
+        vals.forEach(v => { autoMap[v] = String(KNOWN_ORDER[v.toLowerCase()]); });
+      } else {
+        vals.forEach((v, i) => { autoMap[v] = String(i); });
+      }
+      setTargetMapping(autoMap);
+    }
+  }, [targetColumn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadCriteriaSuggestions();
@@ -43,14 +61,6 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
       setPotentialTargets(data.potential_target_columns || []);
 
       setSelectedNumeric((data.suggested_criteria || []).map(c => c.name));
-
-      const types = {};
-      (data.suggested_criteria || []).forEach(c => { types[c.name] = c.type || 'benefit'; });
-      setCriteriaTypes(types);
-
-      const catTypes = {};
-      (data.categorical_columns || []).forEach(c => { catTypes[c.name] = 'benefit'; });
-      setCategoricalTypes(catTypes);
 
       // Default ordinal mapping: auto-assign 1..n alphabetically
       const mappings = {};
@@ -109,19 +119,39 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
       }
     }
 
+    // All criteria are benefit (higher = better); type kept for backend compatibility.
     const numericSelected = numericCriteria
       .filter(c => selectedNumeric.includes(c.name))
-      .map(c => ({ ...c, type: criteriaTypes[c.name] || 'benefit' }));
+      .map(c => ({ ...c, type: 'benefit' }));
 
     const categoricalSelected = categoricalCriteria
       .filter(c => selectedCategorical.includes(c.name))
       .map(c => ({
         ...c,
-        type: categoricalTypes[c.name] || 'benefit',
+        type: 'benefit',
         encoding: Object.fromEntries(
           Object.entries(ordinalMappings[c.name] || {}).map(([k, v]) => [k, parseFloat(v)])
         ),
       }));
+
+    // Validate target mapping if ML target selected
+    if (targetColumn) {
+      const targetInfo = potentialTargets.find(t => t.name === targetColumn);
+      if (targetInfo) {
+        for (const val of targetInfo.unique_values) {
+          const v = parseInt(targetMapping[val]);
+          if (isNaN(v)) {
+            onError(`Mapping incomplet pour la colonne cible "${targetColumn}" : valeur manquante pour "${val}"`);
+            return;
+          }
+        }
+        const mappedValues = Object.values(targetMapping).map(v => parseInt(v));
+        if (new Set(mappedValues).size !== mappedValues.length) {
+          onError(`Mapping invalide : deux classes ne peuvent pas avoir le même rang dans "${targetColumn}"`);
+          return;
+        }
+      }
+    }
 
     const config = {
       data_source: { file_path: `data/raw/${filename}`, id_column: idColumn },
@@ -132,7 +162,9 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
       machine_learning: {
         enabled: true,
         target_column: targetColumn || null,
-        test_size: 0.2,
+        target_mapping: targetColumn
+          ? Object.fromEntries(Object.entries(targetMapping).map(([k, v]) => [k, parseInt(v) || 0]))
+          : {},
       },
       hybrid: { topsis_weight: 0.6, ml_weight: 0.4 },
     };
@@ -162,8 +194,7 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
       <div className="criteria-list">
         <h4>Critères numériques ({selectedNumeric.length} sélectionnés)</h4>
         <p className="criteria-hint">
-          <strong>Benefit ↑</strong> : valeur haute = meilleur (ex: GPA, score au test) &nbsp;|&nbsp;
-          <strong>Cost ↓</strong> : valeur basse = meilleur (ex: frais, absentéisme)
+          Tous les critères sont évalués en <strong>bénéfice</strong> : une valeur plus haute = meilleur candidat.
         </p>
 
         {numericCriteria.length === 0 && (
@@ -173,7 +204,6 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
         {numericCriteria.map((crit, idx) => {
           const isTarget = crit.name === targetColumn;
           const selected = selectedNumeric.includes(crit.name);
-          const type = criteriaTypes[crit.name] || 'benefit';
           return (
             <div key={crit.name} className={`criteria-item ${!selected || isTarget ? 'criteria-disabled' : ''}`}>
               <div className="criteria-checkbox">
@@ -185,12 +215,6 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
                   {isTarget && <span className="target-badge"> Cible ML</span>}
                 </label>
               </div>
-              {selected && (
-                <div className="criteria-type-toggle">
-                  <button className={`type-btn ${type === 'benefit' ? 'type-btn-active benefit' : ''}`} onClick={() => setCriteriaTypes(p => ({ ...p, [crit.name]: 'benefit' }))} type="button">Benefit ↑</button>
-                  <button className={`type-btn ${type === 'cost' ? 'type-btn-active cost' : ''}`} onClick={() => setCriteriaTypes(p => ({ ...p, [crit.name]: 'cost' }))} type="button">Cost ↓</button>
-                </div>
-              )}
             </div>
           );
         })}
@@ -207,7 +231,6 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
           {categoricalCriteria.map((crit, idx) => {
             const isTarget = crit.name === targetColumn;
             const selected = selectedCategorical.includes(crit.name);
-            const type = categoricalTypes[crit.name] || 'benefit';
             const mapping = ordinalMappings[crit.name] || {};
             return (
               <div key={crit.name} className={`criteria-item ${!selected || isTarget ? 'criteria-disabled' : ''}`}>
@@ -223,10 +246,6 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
 
                 {selected && (
                   <>
-                    <div className="criteria-type-toggle">
-                      <button className={`type-btn ${type === 'benefit' ? 'type-btn-active benefit' : ''}`} onClick={() => setCategoricalTypes(p => ({ ...p, [crit.name]: 'benefit' }))} type="button">Benefit ↑</button>
-                      <button className={`type-btn ${type === 'cost' ? 'type-btn-active cost' : ''}`} onClick={() => setCategoricalTypes(p => ({ ...p, [crit.name]: 'cost' }))} type="button">Cost ↓</button>
-                    </div>
                     <div className="ordinal-mapping">
                       <span className="ordinal-label">Score par valeur (1 = le moins bon) :</span>
                       <div className="ordinal-grid">
@@ -259,13 +278,38 @@ const CriteriaConfig = ({ filename, fileInfo, missingStrategy = 'mean', onConfig
         <div className="config-section">
           <label>Colonne cible ML (optionnel) :</label>
           <p className="ml-hint">
-            Si vous disposez d'une colonne de résultat historique (ex : score d'admission passé),
-            le modèle ML s'entraîne dessus pour améliorer le classement.
+            Sélectionnez une colonne contenant des étiquettes catégorielles historiques
+            (ex : Faible / Moyen / Bon / Excellent, Admis / Refusé).
+            Le modèle ML s'entraîne sur ces décisions passées pour améliorer le classement.
           </p>
           <select value={targetColumn} onChange={e => setTargetColumn(e.target.value)} className="select">
             <option value="">— Aucune (TOPSIS + AHP uniquement) —</option>
-            {potentialTargets.map(col => <option key={col} value={col}>{col}</option>)}
+            {potentialTargets.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
           </select>
+
+          {targetColumn && potentialTargets.find(t => t.name === targetColumn) && (
+            <div className="ordinal-mapping" style={{ marginTop: 12 }}>
+              <span className="ordinal-label">
+                Définissez l'ordre des classes (0 = le moins bon, valeur max = le meilleur) :
+              </span>
+              <div className="ordinal-grid">
+                {potentialTargets.find(t => t.name === targetColumn).unique_values.map(val => (
+                  <div key={val} className="ordinal-item">
+                    <span className="ordinal-value-name">{val}</span>
+                    <span className="ordinal-equals">=</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="ordinal-input"
+                      value={targetMapping[val] ?? ''}
+                      onChange={e => setTargetMapping(prev => ({ ...prev, [val]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

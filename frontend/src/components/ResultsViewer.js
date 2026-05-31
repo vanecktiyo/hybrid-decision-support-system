@@ -24,10 +24,11 @@ const TierBadge = ({ tier }) => {
 };
 
 // ── SHAP explanation bar ──────────────────────────────────────────────────────
-const ShapBar = ({ item }) => {
-  const maxAbs = 0.3; // visual clamp
-  const pct = Math.min(Math.abs(item.shap_value) / maxAbs, 1) * 100;
+const ShapBar = ({ item, maxAbs }) => {
+  const clamp = Math.max(maxAbs, 1e-9);
+  const pct = Math.min(Math.abs(item.shap_value) / clamp, 1) * 100;
   const color = item.direction === 'positive' ? '#28a745' : '#dc3545';
+  const decimals = Math.abs(item.shap_value) < 0.001 ? 5 : 3;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
       <span style={{ width: 110, fontSize: 11, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -36,8 +37,8 @@ const ShapBar = ({ item }) => {
       <div style={{ flex: 1, background: '#e9ecef', borderRadius: 3, height: 10, minWidth: 80 }}>
         <div style={{ width: `${pct}%`, background: color, height: '100%', borderRadius: 3 }} />
       </div>
-      <span style={{ width: 52, fontSize: 11, color, textAlign: 'right', fontWeight: 600 }}>
-        {item.shap_value > 0 ? '+' : ''}{item.shap_value.toFixed(3)}
+      <span style={{ width: 64, fontSize: 11, color, textAlign: 'right', fontWeight: 600 }}>
+        {item.shap_value > 0 ? '+' : ''}{item.shap_value.toFixed(decimals)}
       </span>
     </div>
   );
@@ -78,14 +79,18 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
   const mlEnabled = ml?.enabled === true;
   const hasModelResults = mlEnabled && ml.model_results && Object.keys(ml.model_results).length > 0;
   const hasShap = mlEnabled && topResults?.some(r => r.shap_explanation?.length > 0);
+  const hasTopsis = topResults?.some(r => r.topsis_explanation?.length > 0);
+  const hasJustification = hasShap || hasTopsis;
 
   const SCORE_COLS = new Set([
     'TOPSIS_Score', 'TOPSIS_Rank', 'ML_Score', 'Final_Score', 'Final_Rank',
-    'Predicted_Tier', 'shap_explanation',
+    'Predicted_Tier', 'Classe_predite', 'shap_explanation', 'topsis_explanation',
   ]);
   const firstRow = topResults?.length > 0 ? topResults[0] : null;
   const idKey = results.id_column
     || (firstRow ? Object.keys(firstRow).find(k => !SCORE_COLS.has(k)) : 'ID');
+
+  const colCount = 4 + (mlEnabled ? 2 : 0) + (hasJustification ? 1 : 0);
 
   return (
     <div className="results-viewer">
@@ -113,10 +118,10 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
       </div>
 
 
-      {hasShap && (
+      {hasJustification && (
         <div style={{ marginBottom: 12 }}>
           <span style={{ fontSize: 12, color: '#888' }}>
-            Cliquez sur ▶ pour voir la justification du classement
+            Cliquez sur ▶ pour voir la justification du classement (TOPSIS + ML)
           </span>
         </div>
       )}
@@ -143,7 +148,7 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                 {mlEnabled && <th>Score ML</th>}
                 {mlEnabled && <th>Classe prédite</th>}
                 <th>Score final</th>
-                {hasShap && <th>Justification</th>}
+                {hasJustification && <th>Justification</th>}
               </tr>
             </thead>
             <tbody>
@@ -158,20 +163,20 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                         <td>{row.ML_Score != null ? Number(row.ML_Score).toFixed(4) : '—'}</td>
                       )}
                       {mlEnabled && (
-                        <td><TierBadge tier={row.Predicted_Tier} /></td>
+                        <td><TierBadge tier={row.Classe_predite} /></td>
                       )}
                       <td className="final-score">
                         <span className="score-badge">
                           {row.Final_Score != null ? Number(row.Final_Score).toFixed(4) : 'N/A'}
                         </span>
                       </td>
-                      {hasShap && (
+                      {hasJustification && (
                         <td>
-                          {row.shap_explanation?.length > 0 && (
+                          {(row.shap_explanation?.length > 0 || row.topsis_explanation?.length > 0) && (
                             <button
                               className="btn-shap-toggle"
                               onClick={() => setExpandedShap(expandedShap === index ? null : index)}
-                              title="Voir la justification SHAP"
+                              title="Voir la justification du classement"
                             >
                               {expandedShap === index ? '▼' : '▶'}
                             </button>
@@ -179,16 +184,60 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                         </td>
                       )}
                     </tr>
-                    {hasShap && expandedShap === index && row.shap_explanation?.length > 0 && (
+                    {hasJustification && expandedShap === index && (
                       <tr className="shap-row">
-                        <td colSpan={mlEnabled ? 7 : 5} style={{ padding: '8px 16px', background: '#f8f9fa' }}>
-                          <div style={{ fontSize: 12, color: '#555', marginBottom: 6, fontWeight: 600 }}>
-                            Facteurs influençant le classement :
+                        <td colSpan={colCount} style={{ padding: '10px 16px', background: '#f8f9fa' }}>
+                          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+
+                            {/* TOPSIS contributions */}
+                            {row.topsis_explanation?.length > 0 && (
+                              <div style={{ flex: 1, minWidth: 220 }}>
+                                <div style={{ fontSize: 12, color: '#1b3a6b', marginBottom: 6, fontWeight: 700 }}>
+                                  Contribution TOPSIS par critère
+                                </div>
+                                {(() => {
+                                  const maxAbs = Math.max(...row.topsis_explanation.map(t => Math.abs(t.contribution)), 1e-9);
+                                  return row.topsis_explanation.map((item, i) => {
+                                    const pct = Math.min(Math.abs(item.contribution) / maxAbs, 1) * 100;
+                                    const color = item.direction === 'positive' ? '#28a745' : '#dc3545';
+                                    return (
+                                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                        <span style={{ width: 110, fontSize: 11, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {item.feature}
+                                        </span>
+                                        <span style={{ fontSize: 10, color: '#999', width: 32 }}>
+                                          {(item.weight * 100).toFixed(0)}%
+                                        </span>
+                                        <div style={{ flex: 1, background: '#e9ecef', borderRadius: 3, height: 10, minWidth: 60 }}>
+                                          <div style={{ width: `${pct}%`, background: color, height: '100%', borderRadius: 3 }} />
+                                        </div>
+                                        <span style={{ width: 64, fontSize: 11, color, textAlign: 'right', fontWeight: 600 }}>
+                                          {item.contribution > 0 ? '+' : ''}{item.contribution.toFixed(3)}
+                                        </span>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            )}
+
+                            {/* SHAP contributions */}
+                            {row.shap_explanation?.length > 0 && (
+                              <div style={{ flex: 1, minWidth: 220 }}>
+                                <div style={{ fontSize: 12, color: '#7c3aed', marginBottom: 6, fontWeight: 700 }}>
+                                  Contribution ML (SHAP)
+                                </div>
+                                {(() => {
+                                  const maxAbs = Math.max(...row.shap_explanation.map(s => Math.abs(s.shap_value)), 1e-9);
+                                  return row.shap_explanation.map((item, i) => (
+                                    <ShapBar key={i} item={item} maxAbs={maxAbs} />
+                                  ));
+                                })()}
+                              </div>
+                            )}
+
                           </div>
-                          {row.shap_explanation.map((item, i) => (
-                            <ShapBar key={i} item={item} />
-                          ))}
-                          <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+                          <div style={{ fontSize: 11, color: '#999', marginTop: 6 }}>
                             vert = facteur favorisant · rouge = facteur défavorisant
                           </div>
                         </td>
@@ -198,7 +247,7 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                 ))
               ) : (
                 <tr>
-                  <td colSpan={mlEnabled ? 7 : 4} className="no-data">Aucun résultat disponible</td>
+                  <td colSpan={colCount} className="no-data">Aucun résultat disponible</td>
                 </tr>
               )}
             </tbody>
@@ -210,20 +259,62 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
       {hasModelResults && (
         <div className="ml-section">
           <h3>Comparaison des modèles ML</h3>
+          <p className="ml-cv-note">
+            Scores de sélection ci-dessous obtenus par <strong>validation croisée</strong> (5-fold)
+            sur les données d'entraînement. Ils servent à choisir le meilleur modèle, à ne pas
+            confondre avec la performance sur les données de test affichée plus haut.
+          </p>
           <p className="ml-subtitle">
             Meilleur modèle : <strong>{ml.best_model_display}</strong>
-            &nbsp;(F1-macro = {ml.best_f1_macro?.toFixed(4)})
+            &nbsp;({ml.metric_label || 'F1-macro'} = {ml.best_f1_macro?.toFixed(4)})
             &nbsp;· entraîné sur {ml.n_samples} échantillons, {ml.n_features} critères
             {ml.class_distribution && (
               <> · Distribution : {Object.entries(ml.class_distribution).map(([k, v]) => `${k}:${v}`).join(', ')}</>
             )}
           </p>
+
+          {/* ── Honest performance on the held-out test set (rows never seen in training) ── */}
+          {ml.holdout_metrics ? (
+            <div className="holdout-box">
+              <div className="holdout-title">
+                Performance sur les données de test
+                <span className="holdout-badge">
+                  {ml.holdout_metrics.n_test} candidats jamais vus à l'entraînement
+                </span>
+              </div>
+              <p className="holdout-hint">
+                Ces scores mesurent la capacité réelle du modèle à généraliser : ils sont calculés
+                sur un échantillon mis de côté avant l'entraînement (jamais utilisé pour apprendre).
+              </p>
+              <div className="holdout-metrics">
+                <div className="holdout-metric">
+                  <span className="holdout-metric-value">{(ml.holdout_metrics.accuracy * 100).toFixed(1)}%</span>
+                  <span className="holdout-metric-label">Exactitude (accuracy)</span>
+                </div>
+                <div className="holdout-metric">
+                  <span className="holdout-metric-value">{ml.holdout_metrics.f1_macro?.toFixed(4)}</span>
+                  <span className="holdout-metric-label">F1-macro (test)</span>
+                </div>
+                {ml.holdout_metrics.roc_auc != null && (
+                  <div className="holdout-metric">
+                    <span className="holdout-metric-value">{ml.holdout_metrics.roc_auc?.toFixed(4)}</span>
+                    <span className="holdout-metric-label">ROC-AUC (test)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="holdout-hint" style={{ fontStyle: 'italic' }}>
+              Pas d'évaluation sur données de test (échantillon insuffisant pour mettre des candidats de côté).
+              Les scores ci-dessous sont issus de la validation croisée uniquement.
+            </p>
+          )}
           <div className="table-container">
             <table className="results-table">
               <thead>
                 <tr>
                   <th>Modèle</th>
-                  <th>F1-macro (CV)</th>
+                  <th>{ml.metric_label || 'F1-macro'} (CV)</th>
                   <th>Précision (CV)</th>
                   <th>Statut</th>
                 </tr>
@@ -238,7 +329,7 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                     <td>{m.f1_macro != null ? m.f1_macro.toFixed(4) : '—'}</td>
                     <td>{m.accuracy != null ? m.accuracy.toFixed(4) : '—'}</td>
                     <td className={m.status === 'success' ? 'status-ok' : 'status-fail'}>
-                      {m.status === 'success' ? `✓ (${m.cv_folds}-fold CV)` : `✗ ${m.error || ''}`}
+                      {m.status === 'success' ? `✓ ${m.metric || ''} (${m.cv_folds}-fold CV)` : `✗ ${m.error || ''}`}
                     </td>
                   </tr>
                 ))}

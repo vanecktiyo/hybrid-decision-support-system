@@ -74,7 +74,7 @@ class DataPreprocessor:
             self._calculate_quality_score()
             
             self.validation_report['status'] = 'success'
-            logger.info(f"Preprocessing complete. Quality: {self.validation_report['quality_score']:.1%}")
+            logger.info(f"Preprocessing complete. Quality: {self.validation_report['quality_score']:.1f}%")
             
             return self.df, self.validation_report
             
@@ -137,9 +137,11 @@ class DataPreprocessor:
             
             # Check for duplicate IDs
             if self.df['ID'].duplicated().any():
-                logger.warning(f"Found {self.df['ID'].duplicated().sum()} duplicate IDs")
-                self.validation_report['warnings'].append(
-                    f"{self.df['ID'].duplicated().sum()} duplicate IDs found"
+                n_dupes = int(self.df['ID'].duplicated().sum())
+                logger.warning(f"Found {n_dupes} duplicate IDs")
+                self.validation_report['critical_issues'].append(
+                    f"{n_dupes} identifiant(s) dupliqué(s) détecté(s). "
+                    "Chaque candidat doit avoir un identifiant unique dans la colonne ID."
                 )
     
     def _detect_columns(self):

@@ -1,10 +1,18 @@
 """
-Data Processor - Extract, encode, and normalize criteria data.
+Data Processor - Base cleaning of criteria data (NO normalization).
+
+Single responsibility: turn the raw uploaded file into a clean numeric matrix.
+Normalization is intentionally NOT done here — each consumer normalizes on its
+own terms:
+  - TOPSIS normalizes over the whole (closed) candidate set (vector norm).
+  - The ML module normalizes INSIDE a per-fold Pipeline to avoid data leakage.
 
 Handles:
-- Numeric criteria: min-max normalization, benefit/cost direction
-- Categorical criteria: ordinal encoding (user-defined mapping) then normalization
-- Missing values: mean / median / zero imputation, or row exclusion
+- Numeric criteria: numeric coercion
+- Categorical criteria: ordinal encoding (user-defined mapping)
+- Missing values: mean / median / zero imputation (no candidate is ever dropped)
+
+All criteria are treated as 'benefit' (higher = better); there are no cost criteria.
 """
 import pandas as pd
 import numpy as np
@@ -17,7 +25,7 @@ logger = logging.getLogger(__name__)
 class DataProcessor:
     def __init__(self):
         self.raw_data: Optional[pd.DataFrame] = None
-        self.normalized_data: Optional[pd.DataFrame] = None
+        self.cleaned_data: Optional[pd.DataFrame] = None
         self.id_column: str = "ID"
         self.criteria: List[Dict] = []
 
@@ -31,21 +39,26 @@ class DataProcessor:
         self,
         criteria: List[Dict],
         id_column: str = "ID",
-        missing_strategy: str = "mean",
+        missing_strategy: str = "zero",
     ) -> pd.DataFrame:
         """
-        Extract, encode, and normalize criteria columns.
+        Extract, encode and clean criteria columns. Does NOT normalize.
 
         Args:
             criteria: list of criterion dicts:
-                Numeric:      {"name", "source_column", "type": "benefit"|"cost"}
-                Categorical:  {"name", "source_column", "type", "encoding": {"Low": 1, "High": 3}}
+                Numeric:      {"name", "source_column"}
+                Categorical:  {"name", "source_column", "encoding": {"Low": 1, "High": 3}}
             id_column: name of the ID column
-            missing_strategy: "mean" | "median" | "zero" | "exclude"
+            missing_strategy: "zero" (default) | "mean" | "median"
+                - zero: missing -> 0 (a real, displayed value chosen by the user;
+                  since all criteria are benefit, 0 = lowest = penalised). 0 is a
+                  constant, so it introduces no leakage even if applied upstream.
+                - mean/median: impute with the column statistic.
+                No candidate is ever dropped — every candidate must be ranked.
 
         Returns:
-            DataFrame [id_column, crit1, crit2, ...] all normalized to [0, 1]
-            where higher is always better (cost criteria are inverted).
+            DataFrame [id_column, crit1, crit2, ...] with RAW (non-normalized)
+            values, missing entries filled per `missing_strategy`.
         """
         if self.raw_data is None:
             raise ValueError("No data loaded. Call load() first.")
@@ -63,35 +76,31 @@ class DataProcessor:
                 df[source_col] = df[source_col].map(encoding)
                 logger.info(f"  Encoded '{source_col}' with mapping {encoding}")
 
-        # --- Step 2: collect criterion column names and handle missing values ---
+        # --- Step 2: collect criterion columns and coerce to numeric ---
         crit_cols = []
         for crit in criteria:
             col = crit.get("source_column", crit.get("column", crit["name"]))
             if col in df.columns:
                 crit_cols.append(col)
 
-        # Convert all criterion columns to numeric first (handles string dtype from pandas 2.x)
         for col in crit_cols:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        if missing_strategy == "exclude":
-            before = len(df)
-            df = df.dropna(subset=crit_cols)
-            logger.info(f"  Excluded {before - len(df)} rows with missing values")
-        else:
-            for col in crit_cols:
-                if df[col].isna().any():
-                    if missing_strategy == "median":
-                        fill_val = float(df[col].median())
-                    elif missing_strategy == "zero":
-                        fill_val = 0.0
-                    else:  # mean (default)
-                        fill_val = float(df[col].mean())
-                    n_missing = df[col].isna().sum()
-                    df[col] = df[col].fillna(fill_val)
-                    logger.info(f"  Imputed {n_missing} missing in '{col}' with {missing_strategy}={fill_val:.4f}")
+        # --- Step 3: fill missing values (no row is ever dropped) ---
+        for col in crit_cols:
+            if not df[col].isna().any():
+                continue
+            n_missing = int(df[col].isna().sum())
+            if missing_strategy == "median":
+                fill_val = float(df[col].median())
+            elif missing_strategy == "mean":
+                fill_val = float(df[col].mean())
+            else:  # "zero" (default) — constant fill, displayed as-is
+                fill_val = 0.0
+            df[col] = df[col].fillna(fill_val)
+            logger.info(f"  Imputed {n_missing} missing in '{col}' with {missing_strategy}={fill_val:.4f}")
 
-        # --- Step 3: normalize ---
+        # --- Step 4: assemble cleaned (raw, non-normalized) output ---
         result = {}
         if id_column in df.columns:
             result[id_column] = df[id_column].values
@@ -100,25 +109,11 @@ class DataProcessor:
 
         for crit in criteria:
             source_col = crit.get("source_column", crit.get("column", crit["name"]))
-            crit_type = crit.get("type", "benefit")
-
             if source_col not in df.columns:
                 logger.warning(f"Column '{source_col}' not found in data — skipped")
                 continue
+            result[source_col] = df[source_col].astype(float).values
 
-            col_data = df[source_col].astype(float)
-            col_min = col_data.min()
-            col_max = col_data.max()
-
-            if col_max == col_min:
-                normalized = np.full(len(col_data), 0.5)
-            elif crit_type == "cost":
-                normalized = (col_max - col_data) / (col_max - col_min)
-            else:
-                normalized = (col_data - col_min) / (col_max - col_min)
-
-            result[source_col] = np.asarray(normalized)
-
-        self.normalized_data = pd.DataFrame(result)
-        logger.info(f"Normalized {len(criteria)} criteria for {len(self.normalized_data)} candidates")
-        return self.normalized_data
+        self.cleaned_data = pd.DataFrame(result)
+        logger.info(f"Cleaned {len(crit_cols)} criteria for {len(self.cleaned_data)} candidates (no normalization)")
+        return self.cleaned_data

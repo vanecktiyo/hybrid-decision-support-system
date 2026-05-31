@@ -2,12 +2,15 @@
 TOPSIS - Technique for Order Preference by Similarity to Ideal Solution
 Formula (from paper Vaneck DAGAR 2026):
   V matrix: vij = (wj * xij) / sqrt(sum(xij^2))
-  PIS: v+j = max(vij) for benefit, min(vij) for cost
-  NIS: v-j = min(vij) for benefit, max(vij) for cost
+  PIS: v+j = max(vij)   NIS: v-j = min(vij)   (for every criterion)
   S+i = sqrt(sum((vij - v+j)^2))
   S-i = sqrt(sum((vij - v-j)^2))
   Ci = S-i / (S+i + S-i)
   Rank by descending Ci
+
+NOTE: all criteria are benefit (higher = better), so PIS is the per-column max
+and NIS the per-column min. Input is RAW (DataProcessor no longer normalizes);
+TOPSIS does its own vector normalization, which is scale-invariant per column.
 """
 import numpy as np
 import pandas as pd
@@ -29,9 +32,11 @@ class TOPSIS:
         Rank alternatives using TOPSIS.
 
         Args:
-            data: DataFrame with normalized criteria values (0-1 range)
+            data: DataFrame with RAW (non-normalized) criteria values. TOPSIS
+                  applies its own vector normalization internally. All criteria
+                  are benefit (higher = better), so PIS=max / NIS=min per column.
             weights: {criterion_name: weight}
-            criteria: list of {"name": str, "source_column": str, "type": "benefit"|"cost"}
+            criteria: list of {"name": str, "source_column": str}
             id_column: name of the ID column
 
         Returns:
@@ -39,12 +44,13 @@ class TOPSIS:
         """
         col_names = [c.get("source_column", c.get("column", c["name"])) for c in criteria]
         crit_names = [c["name"] for c in criteria]
-        crit_types = [c.get("type", "benefit") for c in criteria]
 
         n_alt = len(data)
         n_crit = len(criteria)
 
-        # Decision matrix X (already min-max normalized 0-1)
+        # Decision matrix X — RAW criterion values (DataProcessor no longer
+        # normalizes). TOPSIS applies its own vector normalization below, so raw
+        # input is correct: vector norm is scale-invariant per column.
         X = data[col_names].values.astype(float)
 
         # Weighted normalized matrix V: vij = (wj * xij) / sqrt(sum(xij^2))
@@ -55,16 +61,10 @@ class TOPSIS:
             w = weights.get(crit_names[j], 1.0 / n_crit)
             V[:, j] = (w * col) / (denom if denom > 0 else 1.0)
 
-        # Ideal solutions
-        pis = np.zeros(n_crit)
-        nis = np.zeros(n_crit)
-        for j in range(n_crit):
-            if crit_types[j] == "cost":
-                pis[j] = np.min(V[:, j])
-                nis[j] = np.max(V[:, j])
-            else:  # benefit
-                pis[j] = np.max(V[:, j])
-                nis[j] = np.min(V[:, j])
+        # Ideal solutions — input is pre-oriented (higher = better) for every
+        # criterion, so PIS is always the column max and NIS the column min.
+        pis = V.max(axis=0)
+        nis = V.min(axis=0)
 
         # Euclidean distances
         s_plus = np.sqrt(np.sum((V - pis) ** 2, axis=1))
@@ -90,7 +90,6 @@ class TOPSIS:
             "nis": nis.tolist(),
             "s_plus": s_plus.tolist(),
             "s_minus": s_minus.tolist(),
-            "criteria_types": dict(zip(crit_names, crit_types)),
         }
 
         return ranking, details

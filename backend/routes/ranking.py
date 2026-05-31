@@ -62,17 +62,17 @@ def process_data():
             return jsonify({"error": "No criteria configured"}), 400
 
         id_column = config.get("data_source", {}).get("id_column", "ID")
-        missing_strategy = config.get("missing_strategy", "mean")
+        missing_strategy = config.get("missing_strategy", "zero")  # align with UI default
         col_names = [c.get("source_column", c.get("column", c["name"])) for c in criteria]
 
-        # -- STEP 1: Load & normalize ------------------------------------------------
+        # -- STEP 1: Load & clean (no normalization here) ----------------------------
         logger.info("=== STEP 1: Data Processing ===")
         processor = DataProcessor()
         processor.load(str(filepath))
-        normalized_df = processor.process(
+        cleaned_df = processor.process(
             criteria, id_column=id_column, missing_strategy=missing_strategy
         )
-        logger.info(f"  {len(normalized_df)} candidates, {len(criteria)} criteria")
+        logger.info(f"  {len(cleaned_df)} candidates, {len(criteria)} criteria")
 
         # -- STEP 2: AHP weights -----------------------------------------------------
         logger.info("=== STEP 2: AHP Weights ===")
@@ -105,7 +105,7 @@ def process_data():
         logger.info("=== STEP 3: TOPSIS Ranking ===")
         topsis = TOPSIS()
         topsis_df, topsis_details = topsis.rank(
-            data=normalized_df,
+            data=cleaned_df,
             weights=weights,
             criteria=criteria,
             id_column=id_column,
@@ -124,45 +124,78 @@ def process_data():
         predicted_tiers = None
         shap_values = None
 
+        trainer = None
+        ordered_tier_labels = None
         if ml_config.get("enabled", False) and target_column:
             if target_column in processor.raw_data.columns:
-                X_ml = normalized_df[col_names]
+                # Defensive copy: keep cleaned_df immutable so ML never affects
+                # the DataFrame TOPSIS also reads from (single shared source).
+                X_ml = cleaned_df[col_names].copy()
 
-                # Align target with normalized_df rows — critical when missing_strategy='exclude'
-                # drops rows from normalized_df but raw_data still has all original rows.
-                if id_column in processor.raw_data.columns and id_column in normalized_df.columns:
-                    kept_ids = normalized_df[id_column].astype(str).values
+                # Align target with cleaned_df rows by ID (defensive: keeps the
+                # target matched to the right candidates regardless of row order).
+                if id_column in processor.raw_data.columns and id_column in cleaned_df.columns:
+                    kept_ids = cleaned_df[id_column].astype(str).values
                     mask = processor.raw_data[id_column].astype(str).isin(kept_ids)
                     target_series = processor.raw_data.loc[mask, target_column].reset_index(drop=True)
                 else:
-                    target_series = processor.raw_data[target_column].iloc[:len(normalized_df)].reset_index(drop=True)
+                    target_series = processor.raw_data[target_column].iloc[:len(cleaned_df)].reset_index(drop=True)
 
-                # Detect whether the target is numeric (continuous) or categorical (tier labels)
-                is_numeric_target = pd.api.types.is_numeric_dtype(target_series)
-                if is_numeric_target:
-                    y_ml = target_series.astype(float)
-                    y_is_continuous = True
+                # Apply user-defined mapping to convert labels to integers
+                target_mapping = ml_config.get("target_mapping", {})
+
+                if pd.api.types.is_numeric_dtype(target_series) and not target_mapping:
+                    logger.warning(f"Target '{target_column}' is numeric with no mapping. Skipping ML.")
+                    ml_info = {
+                        "enabled": False,
+                        "reason": f"La colonne cible '{target_column}' est numérique. "
+                                  "Définissez un mapping d'étiquettes à l'étape Critères."
+                    }
                 else:
-                    y_ml = target_series.astype(str).str.strip()
-                    y_is_continuous = False
+                    labels = target_series.astype(str).str.strip()
+                    if target_mapping:
+                        int_mapping = {str(k): int(v) for k, v in target_mapping.items()}
+                        y_ml = labels.map(int_mapping).fillna(0).astype(int)
 
-                historical_store = HistoricalStore(
-                    current_app.config["HISTORICAL_FOLDER"]
-                )
-                trainer = MLTrainer()
-                ml_info = trainer.train(
-                    X_ml, y_ml, historical_store=historical_store,
-                    y_is_continuous=y_is_continuous
-                )
+                        # Normalize to 0-based indexing (handles 1-based user input)
+                        int_to_label = {int(v): k for k, v in target_mapping.items()}
+                        min_idx = min(int_to_label.keys())
+                        if min_idx != 0:
+                            int_to_label = {k - min_idx: v for k, v in int_to_label.items()}
+                            y_ml = y_ml - min_idx
+                        n_cls = max(int_to_label.keys()) + 1
+                        ordered_tier_labels = [int_to_label[i] for i in range(n_cls) if i in int_to_label]
+                        # Pad missing indices with closest label
+                        if len(ordered_tier_labels) < n_cls:
+                            ordered_tier_labels = [
+                                int_to_label.get(i, ordered_tier_labels[-1] if ordered_tier_labels else "Inconnu")
+                                for i in range(n_cls)
+                            ]
+                    else:
+                        y_ml = labels
+                        ordered_tier_labels = None
 
-                if ml_info.get("enabled"):
+                    historical_store = HistoricalStore(
+                        current_app.config["HISTORICAL_FOLDER"]
+                    )
+                    trainer = MLTrainer()
+                    # Pass the same label ordering used to encode the current session
+                    # so historical sessions are encoded on the SAME class scale.
+                    # test_size is a fixed methodological choice (TEST_SIZE in ml_trainer).
+                    ml_info = trainer.train(
+                        X_ml, y_ml,
+                        historical_store=historical_store,
+                        tier_labels=ordered_tier_labels,
+                    )
+
+                if ml_info.get("enabled") and trainer is not None:
                     raw_tiers, raw_proba_exc, raw_proba_full = trainer.predict(X_ml)
 
                     # Reorder predictions to match topsis_df row order
-                    if id_column in topsis_df.columns and id_column in normalized_df.columns:
+                    if id_column in topsis_df.columns and id_column in cleaned_df.columns:
                         id_to_idx = {
                             str(row[id_column]): i
-                            for i, row in normalized_df.iterrows()
+                            for i, row in cleaned_df.iterrows()
                         }
                         ordered_idx = [
                             id_to_idx[str(row[id_column])]
@@ -174,26 +207,12 @@ def process_data():
                         proba_excellent = raw_proba_exc
                         predicted_tiers = raw_tiers
 
-                    # Identify top-candidate row indices in normalized_df order for SHAP priority
-                    id_to_row = {
-                        str(row[id_column]): i
-                        for i, (_, row) in enumerate(normalized_df.iterrows())
-                    }
-                    top_ids = (
-                        topsis_df.nlargest(15, "TOPSIS_Score")[id_column]
-                        .astype(str).values
-                    )
-                    shap_priority = np.array(
-                        [id_to_row[sid] for sid in top_ids if sid in id_to_row],
-                        dtype=int,
-                    )
-
-                    # SHAP values (in normalized_df order)
-                    shap_raw = trainer.compute_shap(X_ml, priority_indices=shap_priority)
+                    # SHAP values for all candidates
+                    shap_raw = trainer.compute_shap(X_ml)
                     if shap_raw is not None:
                         shap_explanations_by_id = {}
                         formatted = trainer.format_shap_explanations(shap_raw)
-                        for pos, (_, row) in enumerate(normalized_df.iterrows()):
+                        for pos, (_, row) in enumerate(cleaned_df.iterrows()):
                             if pos < len(formatted):
                                 # Normalise ID to int-string to avoid "1.0" vs "1" mismatches
                                 raw_id = row[id_column]
@@ -205,6 +224,12 @@ def process_data():
                     else:
                         shap_explanations_by_id = {}
 
+                    # Translate class_distribution keys from int indices to actual labels
+                    if ordered_tier_labels and "class_distribution" in ml_info:
+                        ml_info["class_distribution"] = {
+                            ordered_tier_labels[int(k)] if int(k) < len(ordered_tier_labels) else k: v
+                            for k, v in ml_info["class_distribution"].items()
+                        }
                     logger.info(f"  Best model: {ml_info.get('best_model_display')}")
             else:
                 logger.warning(f"Target column '{target_column}' not found in data")
@@ -217,6 +242,8 @@ def process_data():
             logger.info("  ML disabled (no target column specified)")
 
         # -- STEP 5: Hybrid Fusion ---------------------------------------------------
+        # Fusion weights are chosen per run via the UI slider (AHP step). The 0.6/0.4
+        # fallback only applies to direct API calls that omit the hybrid block.
         logger.info("=== STEP 5: Hybrid Fusion ===")
         hybrid_config = config.get("hybrid", {})
         topsis_w = float(hybrid_config.get("topsis_weight", 0.6))
@@ -227,15 +254,16 @@ def process_data():
             shap_explanations_by_id = {}
 
         ranker = HybridRanker(topsis_weight=topsis_w, ml_weight=ml_w)
-        final_df = ranker.combine(topsis_df, proba_excellent, predicted_tiers)
+        final_df = ranker.combine(topsis_df, proba_excellent, predicted_tiers,
+                                  tier_labels=ordered_tier_labels if ml_info.get("enabled") else None)
         logger.info(
             f"  Final scores: [{final_df['Final_Score'].min():.4f}, "
             f"{final_df['Final_Score'].max():.4f}]"
         )
 
         # -- STEP 6: Merge criteria values for historical store ----------------------
-        if id_column in final_df.columns and id_column in normalized_df.columns:
-            criteria_cols = normalized_df[[id_column] + col_names].copy()
+        if id_column in final_df.columns and id_column in cleaned_df.columns:
+            criteria_cols = cleaned_df[[id_column] + col_names].copy()
             final_df = final_df.merge(criteria_cols, on=id_column, how="left")
 
         # -- STEP 7: Save results ----------------------------------------------------
@@ -254,15 +282,53 @@ def process_data():
         )
         top_results = top_df.to_dict("records")
 
-        # Attach SHAP explanation to each top candidate
-        if shap_explanations_by_id:
-            for row in top_results:
-                raw_id = row.get(id_column, "")
+        # Build TOPSIS per-criterion contributions indexed by candidate ID
+        topsis_contributions_by_id = {}
+        if topsis_details and "weighted_matrix" in topsis_details:
+            V = np.array(topsis_details["weighted_matrix"])          # (n_alt, n_crit)
+            pis = np.array(topsis_details["pis"])                    # (n_crit,)
+            nis = np.array(topsis_details["nis"])                    # (n_crit,)
+            V_mean = V.mean(axis=0)
+            V_range = np.where((pis - nis) != 0, pis - nis, 1.0)    # avoid /0
+
+            for pos, (_, row_nd) in enumerate(cleaned_df.iterrows()):
+                if pos >= len(V):
+                    break
+                raw_id = row_nd[id_column]
                 try:
-                    candidate_id = str(int(float(raw_id)))
+                    cid = str(int(float(raw_id)))
                 except (ValueError, TypeError):
-                    candidate_id = str(raw_id).strip()
-                row["shap_explanation"] = shap_explanations_by_id.get(candidate_id, [])
+                    cid = str(raw_id).strip()
+
+                contribs = []
+                for j, crit in enumerate(criteria):
+                    crit_name = crit.get("source_column", crit.get("column", crit["name"]))
+                    # Relative position vs mean: positive = above average (better for benefit)
+                    relative = float((V[pos, j] - V_mean[j]) / V_range[j])
+                    crit_type = crit.get("type", "benefit")
+                    direction = "positive" if (
+                        (crit_type == "benefit" and relative >= 0) or
+                        (crit_type == "cost" and relative <= 0)
+                    ) else "negative"
+                    contribs.append({
+                        "feature": crit_name,
+                        "contribution": round(relative, 6),
+                        "weight": round(weights.get(crit["name"], 0.0), 4),
+                        "direction": direction,
+                    })
+                # Sort by absolute contribution descending
+                contribs.sort(key=lambda x: abs(x["contribution"]), reverse=True)
+                topsis_contributions_by_id[cid] = contribs
+
+        # Attach SHAP and TOPSIS explanations to each top candidate
+        for row in top_results:
+            raw_id = row.get(id_column, "")
+            try:
+                candidate_id = str(int(float(raw_id)))
+            except (ValueError, TypeError):
+                candidate_id = str(raw_id).strip()
+            row["shap_explanation"] = shap_explanations_by_id.get(candidate_id, [])
+            row["topsis_explanation"] = topsis_contributions_by_id.get(candidate_id, [])
 
         response = {
             "status": "success",
@@ -356,7 +422,7 @@ def get_criteria_suggestions(filename):
                         "missing": missing,
                     }
                 )
-                potential_targets.append(col)
+                # Numeric columns are NOT valid ML targets — ML requires categorical labels
 
             else:
                 cleaned = (
@@ -382,7 +448,10 @@ def get_criteria_suggestions(filename):
                     )
                     # Categorical columns with ≤ 10 unique values can serve as ML targets
                     if len(unique_vals) <= 10:
-                        potential_targets.append(col)
+                        potential_targets.append({
+                            "name": col,
+                            "unique_values": unique_vals,
+                        })
 
         if suggestions:
             equal_w = round(1.0 / len(suggestions), 6)

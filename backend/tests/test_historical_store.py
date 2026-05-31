@@ -94,6 +94,34 @@ class TestHistoricalStoreRead:
         assert "Validated_Tier" not in X.columns
 
 
+# ------------------------------------------------------------------ load_sessions (per-session)
+class TestHistoricalStoreLoadSessions:
+    def test_empty_store_returns_empty_list(self, store):
+        assert store.load_sessions() == []
+
+    def test_returns_one_pair_per_session(self, store, sample_features, sample_tiers):
+        store.save(sample_features, sample_tiers, "s001")
+        store.save(sample_features, sample_tiers, "s002")
+        sessions = store.load_sessions()
+        assert len(sessions) == 2
+        for X, y in sessions:
+            assert "Validated_Tier" not in X.columns
+            assert len(X) == len(sample_features)
+
+    def test_sessions_kept_separate_with_different_columns(self, store, tmp_path):
+        store.save(pd.DataFrame({"a": [0.1, 0.2]}), pd.Series(["Bon", "Faible"]), "s001")
+        store.save(pd.DataFrame({"b": [0.3, 0.4]}), pd.Series(["Bon", "Faible"]), "s002")
+        sessions = store.load_sessions()
+        colsets = sorted(tuple(sorted(X.columns)) for X, _ in sessions)
+        assert colsets == [("a",), ("b",)]  # not merged into one frame
+
+    def test_skips_file_without_validated_tier(self, store, tmp_path):
+        bad = tmp_path / "historical" / "bad.csv"
+        bad.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame({"feat_a": [0.1]}).to_csv(bad, index=False)
+        assert store.load_sessions() == []
+
+
 # ------------------------------------------------------------------ meta
 class TestHistoricalStoreMeta:
     def test_list_sessions_empty(self, store):

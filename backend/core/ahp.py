@@ -1,13 +1,17 @@
 """
 AHP - Analytic Hierarchy Process
-Column normalization method (Saaty, exact as in paper Vaneck DAGAR 2026)
+Principal eigenvector method (Saaty's exact priority derivation).
 Steps:
-  1. col_sums = sum(A, axis=0)
-  2. R = A / col_sums  (column normalization)
-  3. w = mean(R, axis=1)  (row averages = priority weights)
-  4. lambda_max = mean((A @ w) / w)
-  5. CI = (lambda_max - n) / (n - 1)
-  6. CR = CI / RI
+  1. Solve A·w = lambda_max·w  (eigen-decomposition)
+  2. w = principal eigenvector (largest real eigenvalue), normalized to sum 1
+  3. lambda_max = largest real eigenvalue
+  4. CI = (lambda_max - n) / (n - 1)
+  5. CR = CI / RI
+
+The eigenvector is Saaty's theoretically exact priority vector. For a perfectly
+consistent matrix it coincides with the column-normalization (row-average)
+approximation; for inconsistent matrices it is the recommended estimator.
+The column-normalized matrix R is still returned for display/diagnostics.
 """
 import numpy as np
 import logging
@@ -23,7 +27,12 @@ RI_TABLE = {
 
 
 class AHP:
-    def __init__(self, consistency_threshold: float = 0.1):
+    def __init__(self, consistency_threshold: Optional[float] = None):
+        # Default consistency threshold comes from config.yaml (ahp.consistency_threshold),
+        # falling back to the classic 0.1 if unset.
+        if consistency_threshold is None:
+            from core.config_manager import get_settings
+            consistency_threshold = get_settings().ahp_consistency_threshold
         self.consistency_threshold = consistency_threshold
 
     def calculate(self, matrix: list, criteria_names: Optional[List[str]] = None) -> Dict:
@@ -50,21 +59,24 @@ class AHP:
         if len(criteria_names) != n:
             raise ValueError(f"Expected {n} criteria names, got {len(criteria_names)}")
 
-        # Step 1-2: Column normalization
+        # Column-normalized matrix R — kept for display/diagnostics only
         col_sums = A.sum(axis=0)
         R = A / col_sums
 
-        # Step 3: Priority weights = row averages
-        w = R.mean(axis=1)
-        w = w / w.sum()  # ensure exact sum = 1
+        # Step 1-3: Priority weights = principal eigenvector of A
+        eigenvalues, eigenvectors = np.linalg.eig(A)
+        principal_idx = int(np.argmax(eigenvalues.real))
+        lambda_max = float(eigenvalues[principal_idx].real)
 
-        # Step 4: λmax
-        Aw = A @ w
-        lambda_vec = Aw / w
-        lambda_max = float(lambda_vec.mean())
+        # Take the corresponding eigenvector, drop tiny imaginary parts, force sign,
+        # and normalize to sum = 1 so the entries are interpretable as weights.
+        w = np.abs(eigenvectors[:, principal_idx].real)  # principal eigenvector is sign-consistent
+        w = w / w.sum()
 
         # Step 5-6: CI and CR
-        ci = float((lambda_max - n) / (n - 1)) if n > 1 else 0.0
+        # max(0, .) guards against tiny negative values (~ -1e-16) that the
+        # eigenvector method can produce for a perfectly consistent matrix.
+        ci = max(0.0, float((lambda_max - n) / (n - 1))) if n > 1 else 0.0
         ri = RI_TABLE.get(n, 1.58)
         cr = float(ci / ri) if ri > 0 else 0.0
         is_consistent = cr < self.consistency_threshold

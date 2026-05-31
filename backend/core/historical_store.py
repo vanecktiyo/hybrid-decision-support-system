@@ -57,6 +57,30 @@ class HistoricalStore:
         X = combined.drop(columns=["Validated_Tier"])
         return X, y
 
+    def load_sessions(self) -> List[Tuple[pd.DataFrame, pd.Series]]:
+        """
+        Return each historical session SEPARATELY as a list of (X, y) pairs.
+
+        Unlike load_all() (which concatenates everything), this keeps sessions
+        apart so callers can decide per-session whether the feature set matches
+        the current run — sessions were recorded with possibly DIFFERENT,
+        user-chosen criteria, so they are not blindly comparable.
+        """
+        sessions: List[Tuple[pd.DataFrame, pd.Series]] = []
+        for f in sorted(self.base_dir.glob("*.csv")):
+            try:
+                df = pd.read_csv(str(f))
+            except Exception as exc:
+                logger.warning(f"Failed to load {f.name}: {exc}")
+                continue
+            if "Validated_Tier" not in df.columns:
+                logger.warning(f"Skip {f.name}: no Validated_Tier column")
+                continue
+            y = df["Validated_Tier"]
+            X = df.drop(columns=["Validated_Tier"])
+            sessions.append((X, y))
+        return sessions
+
     # ------------------------------------------------------------------ meta
     def list_sessions(self) -> List[dict]:
         sessions = []

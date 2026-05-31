@@ -91,16 +91,20 @@ class TestTOPSISIdealSolutions:
         for p, n in zip(details['pis'], details['nis']):
             assert p >= n
 
-    def test_cost_criterion_best_is_lowest_value(self):
+    def test_input_is_pre_oriented_higher_is_better(self):
+        # TOPSIS no longer handles benefit/cost: DataProcessor pre-orients data so
+        # that higher is always better. A cost criterion is therefore already
+        # inverted upstream — here we pass the post-normalization values directly.
+        # Raw cost [0.1, 0.5, 0.9] inverted by DataProcessor -> [1.0, 0.5, 0.0].
         topsis = TOPSIS()
         data = pd.DataFrame({
             'ID': ['A', 'B', 'C'],
-            'Cost': [0.1, 0.5, 0.9],
+            'Cost': [1.0, 0.5, 0.0],  # already inverted (A had the lowest raw cost)
         })
-        criteria = [{'name': 'Cost', 'source_column': 'Cost', 'type': 'cost'}]
+        criteria = [{'name': 'Cost', 'source_column': 'Cost'}]
         weights = {'Cost': 1.0}
         ranking, _ = topsis.rank(data, weights, criteria)
-        # A (lowest cost) should rank #1
+        # A (lowest raw cost -> highest oriented value) should rank #1
         assert ranking.iloc[0]['ID'] == 'A'
 
     def test_benefit_criterion_best_is_highest_value(self):

@@ -43,14 +43,31 @@ npm start
 
 ## 2. Format du fichier de données
 
+### Exigences obligatoires
+
+Le fichier **doit** respecter ces critères. Toute exigence non satisfaite bloque l'analyse.
+
 | Critère | Exigence |
 |---|---|
 | **Extensions acceptées** | `.csv`, `.xlsx`, `.xls` |
+| **Taille maximale** | 50 Mo |
 | **Encodage (CSV)** | UTF-8 |
 | **Première ligne** | Noms des colonnes (headers obligatoires) |
+| **Colonne identifiant** | Une colonne `ID` (ou variante reconnue) avec un identifiant unique par candidat — **obligatoire** |
+| **Critères quantifiables** | Au moins 2 colonnes numériques (ou catégorielles ordonnables) utilisables pour le classement |
+| **Une ligne = un candidat** | Pas de lignes fusionnées, pas de sous-totaux, pas de lignes vides intercalées |
+| **IDs uniques** | Chaque candidat doit avoir un identifiant distinct dans la colonne ID — **bloquant** si des doublons sont détectés |
 | **Cellules fusionnées (Excel)** | Interdites — défusionner avant l'export |
 | **Feuilles Excel** | Une seule feuille active |
-| **Nombre minimum de lignes** | 2 candidats (8 minimum pour activer le ML) |
+
+> Si la colonne ID est absente ou contient des doublons, l'application affiche une erreur bloquante et refuse de continuer.
+
+### Exigences recommandées
+
+| Critère | Recommandation |
+|---|---|
+| **Nombre de candidats** | Au moins 8 (minimum pour activer le ML) |
+| **Colonnes complètes** | Éviter les colonnes avec plus de 50% de valeurs manquantes |
 
 ---
 
@@ -121,19 +138,29 @@ Exemple pour Niveau_Etudes :
 
 ### 3.4 Colonne cible ML — optionnel
 
-Une colonne numérique représentant un résultat historique connu pour les candidats.
+Une colonne **catégorielle** contenant des décisions historiques connues pour les candidats.
 Elle sert uniquement à entraîner le modèle ML. Elle **ne participe pas** au classement TOPSIS.
 
-Exemples : score d'admission d'une promotion précédente, note finale obtenue, taux de réussite.
+Les valeurs doivent être des **étiquettes texte** représentant des niveaux ou décisions :
 
 ```
-Score_Historique    Resultat_Final    Admis_Score
-0.87                92                78.5
-0.65                74                61.0
+Admission          Decision           Niveau_Final
+Admis              Excellent          Niveau_A
+Refusé             Bon                Niveau_B
+Admis              Faible             Niveau_C
 ```
 
-> Minimum **8 lignes** pour que l'entraînement ML soit activé.
-> Si absent ou insuffisant, l'application utilise TOPSIS + AHP uniquement.
+> **Important** : les colonnes numériques ne sont pas acceptées comme cible ML.
+> L'application vous demandera de définir l'ordre des classes (0 = le moins bon, valeur max = le meilleur).
+
+| Contrainte | Valeur |
+|---|---|
+| Type de colonne | Catégorielle (texte) uniquement |
+| Nombre de classes | Entre 2 et 10 valeurs distinctes |
+| Minimum par classe | Au moins 4 candidats par valeur |
+| Minimum total | Au moins 8 candidats pour activer le ML |
+
+> Si absent ou insuffisant, l'application utilise TOPSIS + AHP uniquement (sans ML).
 
 ---
 
@@ -206,21 +233,28 @@ ID,GPA,Score_TOEFL,Annees_Experience,Niveau_Etudes,Frais_Scolarite,Score_Histori
 
 ### Étape 2 — Rapport QA (Validation automatique)
 
-L'application analyse la qualité des données et signale :
-- Valeurs manquantes par colonne
-- Lignes dupliquées
-- Valeurs aberrantes (outliers)
-- Types de colonnes détectés
+L'application analyse la qualité des données et affiche :
 
-Vous pouvez continuer même avec des avertissements. Les erreurs bloquantes (fichier illisible, aucune colonne numérique) doivent être corrigées avant de continuer.
+- **Score de qualité global** (0–100%) calculé sur l'ensemble des colonnes détectées
+- **Données manquantes** par colonne, avec choix de la stratégie de remplacement (moyenne, médiane, zéro, ou exclusion)
+- **Anomalies (outliers)** par critère, avec la liste des candidats concernés
+- **Avertissements** divers (IDs dupliqués, colonnes difficiles à convertir, etc.)
+
+**Deux niveaux de résultat possibles :**
+
+| Résultat | Signification | Action |
+|---|---|---|
+| Erreur bloquante (encart rouge) | Exigence obligatoire non respectée (ex : pas de colonne ID) | Corriger le fichier et le réimporter |
+| Avertissements (orange) | Problèmes de qualité non bloquants | Vérifier avant de continuer |
+
+> Vous ne pouvez pas passer à l'étape suivante tant qu'une erreur bloquante est présente.
 
 ### Étape 3 — Configuration des critères
 
 1. **Vérifiez la colonne ID** détectée automatiquement. Corrigez si nécessaire.
 2. **Critères numériques** : cochez les colonnes à utiliser, indiquez Benefit ↑ ou Cost ↓ pour chacune.
-3. **Critères catégoriels** (si présents) : cochez et attribuez un score à chaque valeur.
-4. **Valeurs manquantes** : si des colonnes ont des NaN, choisissez la stratégie de remplacement.
-5. **Colonne cible ML** (optionnel) : sélectionnez une colonne historique pour activer le ML.
+3. **Critères catégoriels** (si présents) : cochez et attribuez un score à chaque valeur (1 = le moins bon).
+4. **Colonne cible ML** (optionnel) : sélectionnez une colonne catégorielle historique. Un mapping s'affiche pour définir l'ordre des classes (0 = le moins bon, valeur max = le meilleur). La colonne cible est automatiquement exclue des critères TOPSIS.
 
 > Au minimum 2 critères doivent être sélectionnés pour continuer.
 
@@ -256,15 +290,23 @@ Coefficient de proximité à la solution idéale. Compris entre 0 et 1.
 
 ### Score ML
 
-Prédiction normalisée du modèle ML (0 à 1). Reflète le résultat prédit selon les données historiques.
+Probabilité d'appartenir à la meilleure classe selon le modèle entraîné (0 à 1).
+Reflète la décision prédite selon les données historiques fournies.
 
-### Score Final (Hybrid)
+### Classe prédite
+
+Étiquette prédite par le modèle ML pour chaque candidat (ex : Admis / Refusé, Excellent / Bon / Moyen / Faible).
+
+### Score Final (Hybride)
 
 ```
-Score Final = 60% × Score TOPSIS + 40% × Score ML
+Score Final = α × Score TOPSIS + β × Score ML
 ```
 
-Si aucune colonne cible ML n'est fournie : Score Final = Score TOPSIS.
+Où α et β sont définis à l'étape 4 (matrice AHP) via le slider de pondération hybride.
+Par défaut : α = 60%, β = 40%.
+
+Si aucune colonne cible ML n'est fournie : Score Final = Score TOPSIS (α = 100%).
 
 ### Ratio de cohérence AHP (CR)
 
@@ -281,13 +323,16 @@ Mesure la cohérence logique de vos comparaisons par paires.
 
 | Message d'erreur | Cause probable | Solution |
 |---|---|---|
+| **Fichier non conforme : impossible de continuer** | Colonne ID absente du fichier | Ajouter une colonne `ID` avec un identifiant unique par candidat |
 | *File not found* | Fichier déplacé après upload | Re-uploader le fichier |
 | *No criteria configured* | Aucun critère sélectionné à l'étape 3 | Sélectionner au moins 2 critères |
 | *Matrix is inconsistent (CR ≥ 0.10)* | Comparaisons AHP contradictoires | Revoir les valeurs les plus incertaines |
 | *Column not found* | Nom de colonne modifié entre les étapes | Recommencer depuis l'étape 1 |
 | *Too few samples for ML* | Moins de 8 lignes dans le fichier | Ajouter des données ou désactiver le ML |
+| *La colonne cible est numérique* | Colonne ML cible de type numérique | Utiliser une colonne catégorielle (texte) comme cible ML |
 | Accents mal affichés | CSV non encodé en UTF-8 | Sauvegarder en CSV UTF-8 depuis Excel |
-| Colonne catégorielle absente | Trop de valeurs distinctes (> 20) | Regrouper les catégories avant l'export |
+| Colonne catégorielle non proposée | Trop de valeurs distinctes (> 10) | Regrouper les catégories avant l'export |
+| Score de qualité très bas (< 50%) | Nombreuses valeurs manquantes ou colonne ID absente | Corriger les problèmes listés dans le rapport QA |
 
 ---
 

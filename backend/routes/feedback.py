@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_COLS = {
     "TOPSIS_Score", "TOPSIS_Rank", "ML_Score", "Final_Score",
-    "Final_Rank", "Predicted_Tier", "Validated_Tier",
+    "Final_Rank", "Classe_predite", "Predicted_Tier", "Validated_Tier",
 }
 
 
@@ -62,15 +62,17 @@ def submit_feedback():
         # Identify tier column
         if "Validated_Tier" in df.columns:
             tier_col = "Validated_Tier"
+        elif "Classe_predite" in df.columns:
+            tier_col = "Classe_predite"
         elif "Predicted_Tier" in df.columns:
             tier_col = "Predicted_Tier"
         else:
             return jsonify(
                 {
                     "error": (
-                        "CSV must contain a 'Validated_Tier' column (or 'Predicted_Tier' "
-                        "if you renamed the predictions). "
-                        f"Valid values: {TIER_LABELS}"
+                        "Le CSV doit contenir une colonne 'Validated_Tier' "
+                        "(ou 'Classe_predite' si vous n'avez pas renommé). "
+                        f"Valeurs acceptées : {TIER_LABELS}"
                     )
                 }
             ), 400

@@ -134,7 +134,6 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
               <option value="mean">Remplacer par la moyenne</option>
               <option value="median">Remplacer par la médiane</option>
               <option value="zero">Remplacer par 0</option>
-              <option value="exclude">Exclure les lignes incomplètes</option>
             </select>
           </div>
         </div>

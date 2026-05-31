@@ -92,10 +92,10 @@ const FeedbackModal = ({ resultId, criteriaColumns = [], onClose }) => {
               Téléchargez le CSV du classement (bouton <strong>Télécharger CSV</strong> dans les résultats).
             </li>
             <li>
-              Ouvrez-le dans Excel ou LibreOffice. Localisez la colonne <code>Predicted_Tier</code>.
+              Ouvrez-le dans Excel ou LibreOffice. Localisez la colonne <code>Classe_predite</code>.
             </li>
             <li>
-              <strong>Renommez-la</strong> <code>Validated_Tier</code> et corrigez les valeurs selon votre jugement.
+              <strong>Renommez-la</strong> <code>Validated_Tier</code> et corrigez les classes selon votre jugement.
               Valeurs acceptées : {' '}
               {TIER_LABELS.map(t => (
                 <span key={t} className={`tier-inline tier-${t.toLowerCase()}`}>{t}</span>

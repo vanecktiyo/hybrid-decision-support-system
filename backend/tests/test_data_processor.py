@@ -1,4 +1,4 @@
-"""Tests for DataProcessor"""
+"""Tests for DataProcessor — base cleaning only (NO normalization)."""
 import pytest
 import pandas as pd
 import numpy as np
@@ -21,8 +21,8 @@ def sample_df():
 @pytest.fixture
 def criteria_benefit():
     return [
-        {'name': 'Score1', 'source_column': 'Score1', 'type': 'benefit'},
-        {'name': 'Score2', 'source_column': 'Score2', 'type': 'benefit'},
+        {'name': 'Score1', 'source_column': 'Score1'},
+        {'name': 'Score2', 'source_column': 'Score2'},
     ]
 
 
@@ -30,7 +30,7 @@ class TestDataProcessorBasic:
     def test_initialization(self):
         dp = DataProcessor()
         assert dp.raw_data is None
-        assert dp.normalized_data is None
+        assert dp.cleaned_data is None
 
     def test_load_csv(self, sample_df, tmp_path):
         csv_path = tmp_path / "test.csv"
@@ -65,11 +65,11 @@ class TestDataProcessorBasic:
         result = dp.process(criteria_benefit, id_column='ID')
         assert isinstance(result, pd.DataFrame)
 
-    def test_process_sets_normalized_data(self, sample_df, criteria_benefit):
+    def test_process_sets_cleaned_data(self, sample_df, criteria_benefit):
         dp = DataProcessor()
         dp.raw_data = sample_df
         dp.process(criteria_benefit, id_column='ID')
-        assert dp.normalized_data is not None
+        assert dp.cleaned_data is not None
 
     def test_id_column_preserved(self, sample_df, criteria_benefit):
         dp = DataProcessor()
@@ -88,46 +88,29 @@ class TestDataProcessorBasic:
     def test_missing_source_column_skipped(self, sample_df):
         dp = DataProcessor()
         dp.raw_data = sample_df
-        criteria = [{'name': 'Ghost', 'source_column': 'NonExistent', 'type': 'benefit'}]
+        criteria = [{'name': 'Ghost', 'source_column': 'NonExistent'}]
         result = dp.process(criteria, id_column='ID')
         assert 'NonExistent' not in result.columns
 
 
-class TestDataNormalization:
-    def test_benefit_range_zero_to_one(self, sample_df, criteria_benefit):
+class TestNoNormalization:
+    """Output must keep RAW values — normalization is delegated to TOPSIS / ML."""
+
+    def test_values_are_raw_not_normalized(self, sample_df, criteria_benefit):
         dp = DataProcessor()
         dp.raw_data = sample_df
         result = dp.process(criteria_benefit, id_column='ID')
-        for col in ['Score1', 'Score2']:
-            assert result[col].between(0, 1).all()
-            assert abs(result[col].min() - 0.0) < 1e-9
-            assert abs(result[col].max() - 1.0) < 1e-9
+        # Raw values preserved exactly (no 0-1 scaling)
+        assert list(result['Score1']) == [50.0, 70.0, 90.0]
+        assert list(result['Score2']) == [30.0, 50.0, 80.0]
 
-    def test_cost_direction_inverts(self):
+    def test_values_can_exceed_one(self):
         dp = DataProcessor()
-        dp.raw_data = pd.DataFrame({
-            'ID': ['A', 'B', 'C'],
-            'Cost': [10.0, 20.0, 30.0],
-        })
-        criteria = [{'name': 'Cost', 'source_column': 'Cost', 'type': 'cost'}]
-        result = dp.process(criteria, id_column='ID')
-        # Lowest cost (A=10) → normalized 1.0; highest (C=30) → 0.0
-        idx_a = result[result['ID'] == 'A'].index[0]
-        idx_c = result[result['ID'] == 'C'].index[0]
-        assert abs(result.loc[idx_a, 'Cost'] - 1.0) < 1e-9
-        assert abs(result.loc[idx_c, 'Cost'] - 0.0) < 1e-9
+        dp.raw_data = pd.DataFrame({'ID': ['A', 'B'], 'Score': [12.0, 18.0]})
+        result = dp.process([{'name': 'Score', 'source_column': 'Score'}], id_column='ID')
+        assert result['Score'].max() == 18.0  # not squashed to 1.0
 
-    def test_constant_column_gives_half(self):
-        dp = DataProcessor()
-        dp.raw_data = pd.DataFrame({
-            'ID': ['A', 'B', 'C'],
-            'Flat': [5.0, 5.0, 5.0],
-        })
-        criteria = [{'name': 'Flat', 'source_column': 'Flat', 'type': 'benefit'}]
-        result = dp.process(criteria, id_column='ID')
-        assert (result['Flat'] == 0.5).all()
-
-    def test_ordinal_encoding_then_normalized(self):
+    def test_ordinal_encoding_kept_raw(self):
         dp = DataProcessor()
         dp.raw_data = pd.DataFrame({
             'ID': ['A', 'B', 'C'],
@@ -136,48 +119,46 @@ class TestDataNormalization:
         criteria = [{
             'name': 'Level',
             'source_column': 'Level',
-            'type': 'benefit',
             'encoding': {'Low': 1, 'Medium': 2, 'High': 3},
         }]
         result = dp.process(criteria, id_column='ID')
-        assert result['Level'].between(0, 1).all()
-        # High (3) → 1.0 ; Low (1) → 0.0
-        idx_high = result[result['ID'] == 'C'].index[0]
-        idx_low = result[result['ID'] == 'A'].index[0]
-        assert abs(result.loc[idx_high, 'Level'] - 1.0) < 1e-9
-        assert abs(result.loc[idx_low, 'Level'] - 0.0) < 1e-9
+        # Encoded to raw ordinal codes, NOT normalized
+        assert list(result['Level']) == [1.0, 2.0, 3.0]
 
 
 class TestMissingValues:
-    def test_mean_imputation_no_nans(self):
+    def test_zero_imputation_fills_with_zero(self):
         dp = DataProcessor()
-        dp.raw_data = pd.DataFrame({
-            'ID': ['A', 'B', 'C'],
-            'Score': [10.0, np.nan, 30.0],
-        })
-        criteria = [{'name': 'Score', 'source_column': 'Score', 'type': 'benefit'}]
-        result = dp.process(criteria, id_column='ID', missing_strategy='mean')
-        assert result['Score'].isna().sum() == 0
-
-    def test_zero_imputation_no_nans(self):
-        dp = DataProcessor()
-        dp.raw_data = pd.DataFrame({
-            'ID': ['A', 'B', 'C'],
-            'Score': [10.0, np.nan, 30.0],
-        })
-        criteria = [{'name': 'Score', 'source_column': 'Score', 'type': 'benefit'}]
+        dp.raw_data = pd.DataFrame({'ID': ['A', 'B', 'C'], 'Score': [10.0, np.nan, 30.0]})
+        criteria = [{'name': 'Score', 'source_column': 'Score'}]
         result = dp.process(criteria, id_column='ID', missing_strategy='zero')
         assert result['Score'].isna().sum() == 0
+        # The missing value is filled with exactly 0 (real, displayed value)
+        assert result.loc[result['ID'] == 'B', 'Score'].iloc[0] == 0.0
 
-    def test_exclude_removes_rows_with_missing(self):
+    def test_mean_imputation_fills_with_mean(self):
         dp = DataProcessor()
-        dp.raw_data = pd.DataFrame({
-            'ID': ['A', 'B', 'C'],
-            'Score': [10.0, np.nan, 30.0],
-        })
-        criteria = [{'name': 'Score', 'source_column': 'Score', 'type': 'benefit'}]
-        result = dp.process(criteria, id_column='ID', missing_strategy='exclude')
-        assert len(result) == 2
+        dp.raw_data = pd.DataFrame({'ID': ['A', 'B', 'C'], 'Score': [10.0, np.nan, 30.0]})
+        criteria = [{'name': 'Score', 'source_column': 'Score'}]
+        result = dp.process(criteria, id_column='ID', missing_strategy='mean')
+        assert result['Score'].isna().sum() == 0
+        assert result.loc[result['ID'] == 'B', 'Score'].iloc[0] == 20.0  # mean of 10,30
+
+    def test_median_imputation_fills_with_median(self):
+        dp = DataProcessor()
+        dp.raw_data = pd.DataFrame({'ID': ['A', 'B', 'C', 'D'], 'Score': [10.0, np.nan, 30.0, 50.0]})
+        criteria = [{'name': 'Score', 'source_column': 'Score'}]
+        result = dp.process(criteria, id_column='ID', missing_strategy='median')
+        assert result.loc[result['ID'] == 'B', 'Score'].iloc[0] == 30.0  # median of 10,30,50
+
+    def test_no_candidate_is_ever_dropped(self):
+        dp = DataProcessor()
+        dp.raw_data = pd.DataFrame({'ID': ['A', 'B', 'C'], 'Score': [10.0, np.nan, 30.0]})
+        criteria = [{'name': 'Score', 'source_column': 'Score'}]
+        for strategy in ('mean', 'median', 'zero'):
+            result = dp.process(criteria, id_column='ID', missing_strategy=strategy)
+            assert len(result) == 3, f"strategy={strategy} dropped candidates"
+            assert result['Score'].isna().sum() == 0
 
 
 if __name__ == '__main__':

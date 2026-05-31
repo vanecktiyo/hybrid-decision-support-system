@@ -26,6 +26,7 @@ class HybridRanker:
         topsis_df: pd.DataFrame,
         ml_proba_excellent: np.ndarray = None,
         ml_predicted_tiers: np.ndarray = None,
+        tier_labels: list = None,
     ) -> pd.DataFrame:
         """
         Merge TOPSIS scores with ML classification output.
@@ -43,7 +44,7 @@ class HybridRanker:
                 result["TOPSIS_Score"].rank(ascending=False, method="min").astype(int)
             )
             result["ML_Score"] = None
-            result["Predicted_Tier"] = None
+            result["Classe_predite"] = None
             return result
 
         # P(Excellent) is already in [0,1] — no normalisation needed
@@ -58,11 +59,13 @@ class HybridRanker:
         )
 
         if ml_predicted_tiers is not None:
-            result["Predicted_Tier"] = [
-                TIER_LABELS[int(t)] if 0 <= int(t) < 4 else "Moyen"
+            labels = tier_labels or TIER_LABELS
+            result["Classe_predite"] = [
+                labels[int(t)] if 0 <= int(t) < len(labels) else labels[-1]
                 for t in ml_predicted_tiers
             ]
         else:
-            result["Predicted_Tier"] = None
+            result["Classe_predite"] = None
+
 
         return result
