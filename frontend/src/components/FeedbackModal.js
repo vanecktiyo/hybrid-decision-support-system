@@ -17,7 +17,7 @@ import { apiService } from '../services/api';
  *  - criteriaColumns: string[] — list of criteria column names used in this analysis
  *  - onClose      : () => void
  */
-const TIER_LABELS = ['Excellent', 'Bon', 'Moyen', 'Faible'];
+const ACCEPTED_EXT = ['.csv', '.xlsx', '.xls'];
 
 const FeedbackModal = ({ resultId, criteriaColumns = [], onClose }) => {
   const [file, setFile]           = useState(null);
@@ -40,18 +40,19 @@ const FeedbackModal = ({ resultId, criteriaColumns = [], onClose }) => {
 
   const handleFileChange = (e) => {
     const f = e.target.files[0];
-    if (f && f.name.endsWith('.csv')) {
+    const ok = f && ACCEPTED_EXT.some(ext => f.name.toLowerCase().endsWith(ext));
+    if (ok) {
       setFile(f);
       setMessage('');
     } else {
       setFile(null);
-      setMessage('Veuillez sélectionner un fichier CSV.');
+      setMessage('Veuillez sélectionner un fichier CSV ou Excel (.csv, .xlsx, .xls).');
     }
   };
 
   const handleSubmit = async () => {
     if (!file) {
-      setMessage('Sélectionnez un fichier CSV avant de soumettre.');
+      setMessage('Sélectionnez un fichier CSV ou Excel avant de soumettre.');
       return;
     }
     try {
@@ -89,23 +90,24 @@ const FeedbackModal = ({ resultId, criteriaColumns = [], onClose }) => {
           <h4>Comment procéder :</h4>
           <ol>
             <li>
-              Téléchargez le CSV du classement (bouton <strong>Télécharger CSV</strong> dans les résultats).
+              Téléchargez le classement (bouton <strong>Télécharger CSV</strong> ou <strong>Excel</strong> dans les résultats).
             </li>
             <li>
               Ouvrez-le dans Excel ou LibreOffice. Localisez la colonne <code>Classe_predite</code>.
             </li>
             <li>
-              <strong>Renommez-la</strong> <code>Validated_Tier</code> et corrigez les classes selon votre jugement.
-              Valeurs acceptées : {' '}
-              {TIER_LABELS.map(t => (
-                <span key={t} className={`tier-inline tier-${t.toLowerCase()}`}>{t}</span>
-              ))}
+              <strong>Renommez-la</strong> <code>Validated_Tier</code> et inscrivez la <strong>vérité terrain</strong> :
+              la classe réelle de chaque candidat, selon votre jugement.
             </li>
-            <li>Sauvegardez le fichier au format CSV et re-uploadez-le ci-dessous.</li>
+            <li>
+              Vous êtes libre du nombre et du nom des classes (ex. <em>Admis / Refusé</em>,
+              ou <em>A / B / C / D</em>…), avec un <strong>minimum de 2 classes distinctes</strong>.
+            </li>
+            <li>Sauvegardez le fichier (CSV ou Excel) et re-uploadez-le ci-dessous.</li>
           </ol>
           <p className="modal-note">
-            Ces données seront utilisées pour entraîner le modèle ML lors des prochains classements,
-            le rendant progressivement plus précis.
+            Ces données serviront de vérité terrain pour entraîner le modèle ML lors des prochains
+            classements, le rendant progressivement plus précis.
           </p>
         </div>
 
@@ -123,10 +125,10 @@ const FeedbackModal = ({ resultId, criteriaColumns = [], onClose }) => {
 
         {/* File upload */}
         <div className="form-group">
-          <label>Fichier CSV validé</label>
+          <label>Fichier validé (CSV ou Excel)</label>
           <input
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx,.xls"
             className="form-input"
             onChange={handleFileChange}
           />

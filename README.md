@@ -12,11 +12,13 @@ This application allows any organization to rank candidates based on multiple cr
 
 **Pipeline:**
 1. **AHP** — compute criterion weights from pairwise comparisons (or use equal weights)
-2. **TOPSIS** — rank candidates using weighted normalized distances
-3. **ML Classification** — classify ccandidates into 4 levels (Faible / Moyen / Bon / Excellent) using the best cross-validated model among Random Forest, Gradient Boosting, Decision Tree, Logistic Regression, SVM
-4. **Hybrid Fusion** — combine TOPSIS score (60%) and ML probability of Excellent (40%) into a final score
+2. **TOPSIS** — rank candidates using weighted normalized distances (all criteria are benefit: higher = better)
+3. **ML Classification** — classify candidates using the best cross-validated model among Random Forest, Gradient Boosting, Decision Tree, Logistic Regression, SVM (and XGBoost when available). The class labels come from the user's ground-truth column — **any label set with at least 2 classes** (the system is not tied to a fixed 4-tier scheme).
+4. **Hybrid Fusion** — combine TOPSIS score (60%) and ML probability of the best class (40%) into a final score
 5. **SHAP** — explain the top candidates' scores using feature-level contributions
-6. **Feedback loop** — experts validate and correct predicted tiers; validated data is stored and used to improve the ML model on future runs
+6. **Feedback loop** — experts validate and correct predicted classes (CSV or Excel); validated data is stored and used to improve the ML model on future runs
+
+A held-out test set (rows never seen during training) provides an honest performance estimate, reported separately from the cross-validation scores used for model selection.
 
 ---
 
@@ -29,7 +31,7 @@ admission-ranking-system/
 │   ├── core/
 │   │   ├── ahp.py              # AHP weights + consistency ratio
 │   │   ├── topsis.py           # TOPSIS ranking
-│   │   ├── data_processor.py   # Normalization + missing value handling
+│   │   ├── data_processor.py   # Base cleaning (encoding + missing values); no normalization
 │   │   ├── ml_trainer.py       # ML training, SHAP, tier classification
 │   │   ├── hybrid.py           # Hybrid fusion (TOPSIS + ML)
 │   │   ├── historical_store.py # Persist validated tiers for incremental learning
@@ -50,7 +52,8 @@ admission-ranking-system/
 │   │   │   ├── QAReport.js
 │   │   │   ├── CriteriaConfig.js
 │   │   │   ├── AHPMatrix.js
-│   │   │   ├── Dashboard.js        # Results + SHAP explanations
+│   │   │   ├── Dashboard.js        # Step orchestration
+│   │   │   ├── ResultsViewer.js    # Results + SHAP explanations + test-set metrics
 │   │   │   └── FeedbackModal.js    # Expert validation interface
 │   │   └── services/api.js
 │   └── package.json
@@ -107,35 +110,40 @@ The UI runs on `http://localhost:3000`.
 
 ## ML Classification
 
-The system trains 5 classifiers and selects the best by cross-validated F1-macro:
+The system trains several classifiers and selects the best by cross-validated F1-macro
+(ROC-AUC for binary targets), then tunes only the winner via RandomizedSearchCV:
 
 - Random Forest
 - Gradient Boosting
 - Decision Tree
 - Logistic Regression
 - SVM (RBF)
+- XGBoost (when installed)
 
-Candidates are assigned to one of 4 tiers based on their target column (continuous or categorical):
+Candidates are classified according to the user-provided **ground-truth column**
+(a categorical label column). The class set is **free**: any names, any count ≥ 2
+(e.g. `Admis / Refusé`, or `Non_classe / Moyen / Bon / Excellent`). The ground-truth
+column must be defined from data **independent of the chosen criteria** to avoid target
+leakage.
 
-| Tier | Level |
-|------|-------|
-| 0 | Faible |
-| 1 | Moyen |
-| 2 | Bon |
-| 3 | Excellent |
+To keep the evaluation honest:
+- scaling lives inside a per-fold `Pipeline` (no preprocessing leakage),
+- a stratified hold-out set gives a real generalization estimate,
+- the deployed model is then refit on all data.
 
-SHAP values are computed for the top-ranked candidates to explain feature contributions toward the Excellent class.
+SHAP values are computed for the top-ranked candidates to explain feature contributions
+toward the best class.
 
 ---
 
 ## Feedback Loop
 
 After reviewing the ranked results, an expert can:
-1. Download the result CSV
-2. Rename `Predicted_Tier` to `Validated_Tier` and correct values
-3. Re-upload via the FeedbackModal
+1. Download the results (CSV or Excel)
+2. Rename `Classe_predite` (or `Predicted_Tier`) to `Validated_Tier` and correct values — any label set with ≥ 2 classes
+3. Re-upload via the FeedbackModal (CSV or Excel)
 
-The validated data is stored in `backend/historical/` and automatically included in the next training session, making the model progressively more accurate.
+The validated data is stored in `backend/historical/` and automatically included in the next training session **whose criteria match** (sessions with different criteria are skipped to avoid mixing incomparable feature spaces), making the model progressively more accurate.
 
 ---
 

@@ -23,7 +23,8 @@ class HistoricalStore:
 
     # ------------------------------------------------------------------ write
     def save(self, features: pd.DataFrame, tiers: pd.Series, session_id: str) -> str:
-        """Persist a validated session. tiers must contain TIER_LABELS values."""
+        """Persist a validated session. `tiers` holds the ground-truth labels
+        (free-form: any class names, at least 2 distinct values)."""
         df = features.copy().reset_index(drop=True)
         df["Validated_Tier"] = tiers.values
         filepath = self.base_dir / f"{session_id}.csv"

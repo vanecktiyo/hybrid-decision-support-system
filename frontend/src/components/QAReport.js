@@ -98,7 +98,7 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
       {/* Conversions texte */}
       {report.text_converted.length > 0 && (
         <div className="conversions-section">
-          <h3>Colonnes converties en numérique ({report.text_converted.length})</h3>
+          <h3>Colonnes à convertir en numérique ({report.text_converted.length})</h3>
           <div className="conversions-list">
             {report.text_converted.map((col, i) => (
               <div key={i} className="conversion-item">
@@ -113,7 +113,7 @@ const QAReport = ({ report, filename, onConfirm, onGoBack }) => {
       {/* Manquants */}
       {Object.keys(report.missing_data_summary).length > 0 && (
         <div className="missing-section">
-          <h3>Données manquantes ({Object.keys(report.missing_data_summary).length})</h3>
+          <h3>Critères avec données manquantes ({Object.keys(report.missing_data_summary).length})</h3>
           <div className="missing-list">
             {Object.entries(report.missing_data_summary).map(([col, stats], i) => (
               <div key={i} className="missing-item">

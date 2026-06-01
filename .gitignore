@@ -59,3 +59,6 @@ data/raw/*.xlsx
 # Project specific
 *.yaml.bak
 *.yaml.old
+
+# Rapport LaTeX - not versioned
+rapport/

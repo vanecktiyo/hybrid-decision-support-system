@@ -93,7 +93,8 @@ ID      Nom_Candidat    Reference
 ### 3.2 Colonnes critères numériques — au moins 2 obligatoires
 
 Ce sont les colonnes sur lesquelles le classement est basé.
-Valeurs entières ou décimales. Les unités et échelles sont libres — l'application normalise automatiquement.
+Valeurs entières ou décimales. Les unités et échelles sont libres — TOPSIS normalise
+automatiquement chaque critère lors du calcul.
 
 ```
 GPA     Score_Test    Annees_Experience    Note_Entretien
@@ -101,10 +102,10 @@ GPA     Score_Test    Annees_Experience    Note_Entretien
 3.2     91            2                   12.0
 ```
 
-Pour chaque critère numérique, vous indiquerez dans l'application :
-
-- **Benefit ↑** : valeur haute = meilleur (ex : GPA, score au test, années d'expérience)
-- **Cost ↓** : valeur basse = meilleur (ex : frais de scolarité, taux d'absentéisme, délai)
+> **Tous les critères sont évalués en « bénéfice »** : une valeur plus haute = meilleur
+> candidat. Pour un critère où « moins est mieux » (ex : frais, délai), transformez-le
+> avant l'upload (par ex. en inversant l'échelle) afin qu'une valeur haute traduise un
+> meilleur profil.
 
 ---
 
@@ -138,26 +139,32 @@ Exemple pour Niveau_Etudes :
 
 ### 3.4 Colonne cible ML — optionnel
 
-Une colonne **catégorielle** contenant des décisions historiques connues pour les candidats.
-Elle sert uniquement à entraîner le modèle ML. Elle **ne participe pas** au classement TOPSIS.
+Une colonne **catégorielle** contenant la **vérité terrain** : la classe réelle connue
+de chaque candidat (issue d'une sélection passée). Elle sert uniquement à entraîner le
+modèle ML et **ne participe pas** au classement TOPSIS.
 
-Les valeurs doivent être des **étiquettes texte** représentant des niveaux ou décisions :
+Les **noms et le nombre de classes sont libres** — l'application ne se limite à aucun
+vocabulaire imposé. Quelques exemples valides :
 
 ```
 Admission          Decision           Niveau_Final
-Admis              Excellent          Niveau_A
-Refusé             Bon                Niveau_B
-Admis              Faible             Niveau_C
+Admis              A                  Non_classe
+Refusé             B                  Moyen
+Admis              C                  Excellent
 ```
 
-> **Important** : les colonnes numériques ne sont pas acceptées comme cible ML.
-> L'application vous demandera de définir l'ordre des classes (0 = le moins bon, valeur max = le meilleur).
+> **Important** : la cible doit être une colonne d'**étiquettes** (texte) avec au moins
+> **2 classes distinctes**. L'application vous demandera de définir l'ordre des classes
+> (0 = le moins bon, valeur max = le meilleur).
+>
+> ⚠️ La colonne utilisée pour construire la vérité terrain (ex : un classement) **ne doit
+> pas** être sélectionnée comme critère de classement, sinon le modèle « relit » la réponse
+> (fuite de données) et ses scores deviennent trompeurs.
 
 | Contrainte | Valeur |
 |---|---|
-| Type de colonne | Catégorielle (texte) uniquement |
-| Nombre de classes | Entre 2 et 10 valeurs distinctes |
-| Minimum par classe | Au moins 4 candidats par valeur |
+| Type de colonne | Catégorielle (texte) — noms de classes libres |
+| Nombre de classes | Au moins 2 valeurs distinctes |
 | Minimum total | Au moins 8 candidats pour activer le ML |
 
 > Si absent ou insuffisant, l'application utilise TOPSIS + AHP uniquement (sans ML).
@@ -168,8 +175,8 @@ Admis              Faible             Niveau_C
 
 | Situation | Comportement |
 |---|---|
-| Colonnes avec valeurs manquantes | Détectées dans le rapport QA. Stratégie choisie par l'utilisateur : moyenne, médiane, zéro, ou exclusion de la ligne |
-| Échelles différentes entre critères | Normalisation min-max automatique par colonne |
+| Colonnes avec valeurs manquantes | Détectées dans le rapport QA. Stratégie choisie par l'utilisateur : moyenne, médiane, ou zéro. **Aucun candidat n'est jamais exclu** — tout candidat est classé |
+| Échelles différentes entre critères | Normalisation automatique au moment du calcul (TOPSIS : normalisation vectorielle ; ML : mise à l'échelle interne par repli de validation croisée) |
 | Colonnes texte non-ordonnables | Ignorées — non proposées comme critères |
 | Colonne identifiant | Détection automatique par nom, sinon sélection manuelle |
 | Doublons | Signalés dans le rapport QA |
@@ -217,9 +224,9 @@ ID,GPA,Score_TOEFL,Annees_Experience,Niveau_Etudes,Frais_Scolarite,Score_Histori
 | `GPA` | Numérique | Critère Benefit ↑ |
 | `Score_TOEFL` | Numérique | Critère Benefit ↑ |
 | `Annees_Experience` | Numérique | Critère Benefit ↑ |
-| `Niveau_Etudes` | Catégoriel | Critère Benefit ↑ (Licence=1, Master=2, Doctorat=3) |
-| `Frais_Scolarite` | Numérique | Critère Cost ↓ |
-| `Score_Historique` | Numérique | Colonne cible ML (optionnel) |
+| `Niveau_Etudes` | Catégoriel | Critère (Licence=1, Master=2, Doctorat=3) |
+| `Frais_Scolarite` | Numérique | Critère (transformer pour qu'une valeur haute = mieux) |
+| `Score_Historique` | Numérique | Non utilisable comme cible ML (la cible doit être catégorielle) |
 
 ---
 
@@ -236,7 +243,7 @@ ID,GPA,Score_TOEFL,Annees_Experience,Niveau_Etudes,Frais_Scolarite,Score_Histori
 L'application analyse la qualité des données et affiche :
 
 - **Score de qualité global** (0–100%) calculé sur l'ensemble des colonnes détectées
-- **Données manquantes** par colonne, avec choix de la stratégie de remplacement (moyenne, médiane, zéro, ou exclusion)
+- **Données manquantes** par colonne, avec choix de la stratégie de remplacement (moyenne, médiane, ou zéro). Par défaut : **zéro** (le candidat sans information est pénalisé, mais jamais exclu)
 - **Anomalies (outliers)** par critère, avec la liste des candidats concernés
 - **Avertissements** divers (IDs dupliqués, colonnes difficiles à convertir, etc.)
 
@@ -252,9 +259,9 @@ L'application analyse la qualité des données et affiche :
 ### Étape 3 — Configuration des critères
 
 1. **Vérifiez la colonne ID** détectée automatiquement. Corrigez si nécessaire.
-2. **Critères numériques** : cochez les colonnes à utiliser, indiquez Benefit ↑ ou Cost ↓ pour chacune.
+2. **Critères numériques** : cochez les colonnes à utiliser. Tous les critères sont en « bénéfice » (valeur haute = meilleur).
 3. **Critères catégoriels** (si présents) : cochez et attribuez un score à chaque valeur (1 = le moins bon).
-4. **Colonne cible ML** (optionnel) : sélectionnez une colonne catégorielle historique. Un mapping s'affiche pour définir l'ordre des classes (0 = le moins bon, valeur max = le meilleur). La colonne cible est automatiquement exclue des critères TOPSIS.
+4. **Colonne cible ML** (optionnel) : sélectionnez une colonne catégorielle de vérité terrain. Un mapping s'affiche pour définir l'ordre des classes (0 = le moins bon, valeur max = le meilleur). La colonne cible est automatiquement exclue des critères. **N'utilisez pas comme critère la colonne qui a servi à fabriquer la cible** (risque de fuite de données).
 
 > Au minimum 2 critères doivent être sélectionnés pour continuer.
 
@@ -272,8 +279,31 @@ La matrice AHP permet de définir l'importance **relative** de chaque critère p
 L'application affiche :
 - Le classement final avec le score de chaque candidat
 - Les poids AHP par critère (avec le ratio de cohérence CR)
-- Si ML activé : tableau comparatif des modèles (RMSE, R²) et importance des variables
+- Si ML activé :
+  - **Performance sur les données de test** : score honnête mesuré sur un échantillon
+    mis de côté avant l'entraînement (jamais utilisé pour apprendre) — c'est l'indicateur
+    de référence de la qualité réelle du modèle.
+  - Tableau comparatif des modèles par **validation croisée** (F1-macro), qui sert à
+    sélectionner le meilleur modèle — à ne pas confondre avec la performance test.
+  - La justification par candidat (contributions TOPSIS + SHAP).
 - Boutons d'export CSV et Excel
+
+### Étape 6 (optionnelle) — Validation et apprentissage incrémental
+
+Depuis la page de résultats, le bouton **Soumettre la validation** ouvre une fenêtre qui
+permet d'enrichir le modèle avec votre vérité terrain :
+
+1. Téléchargez le classement (**CSV** ou **Excel**).
+2. Ouvrez-le, repérez la colonne `Classe_predite`.
+3. **Renommez-la `Validated_Tier`** et inscrivez la classe réelle de chaque candidat
+   selon votre jugement.
+4. Les **noms et le nombre de classes sont libres** (ex. `Admis / Refusé`, ou `A / B / C / D`…),
+   avec un **minimum de 2 classes distinctes**.
+5. Sauvegardez (CSV ou Excel) et ré-uploadez le fichier dans la fenêtre.
+
+Ces données sont stockées comme **session historique** et réutilisées pour l'entraînement
+lors des prochains classements **dont les critères sont identiques** (le système ignore les
+sessions aux critères différents pour éviter de mélanger des profils incomparables).
 
 ---
 
@@ -295,7 +325,8 @@ Reflète la décision prédite selon les données historiques fournies.
 
 ### Classe prédite
 
-Étiquette prédite par le modèle ML pour chaque candidat (ex : Admis / Refusé, Excellent / Bon / Moyen / Faible).
+Étiquette prédite par le modèle ML pour chaque candidat, selon les classes de votre vérité
+terrain (ex : Admis / Refusé, ou Non_classe / Moyen / Bon / Excellent).
 
 ### Score Final (Hybride)
 
@@ -330,8 +361,9 @@ Mesure la cohérence logique de vos comparaisons par paires.
 | *Column not found* | Nom de colonne modifié entre les étapes | Recommencer depuis l'étape 1 |
 | *Too few samples for ML* | Moins de 8 lignes dans le fichier | Ajouter des données ou désactiver le ML |
 | *La colonne cible est numérique* | Colonne ML cible de type numérique | Utiliser une colonne catégorielle (texte) comme cible ML |
+| *La colonne doit contenir au moins 2 classes distinctes* (validation) | Vérité terrain à une seule classe | Fournir au moins 2 classes différentes dans `Validated_Tier` |
 | Accents mal affichés | CSV non encodé en UTF-8 | Sauvegarder en CSV UTF-8 depuis Excel |
-| Colonne catégorielle non proposée | Trop de valeurs distinctes (> 10) | Regrouper les catégories avant l'export |
+| Colonne catégorielle non proposée comme critère | Trop de valeurs distinctes (> 20) | Regrouper les catégories avant l'export |
 | Score de qualité très bas (< 50%) | Nombreuses valeurs manquantes ou colonne ID absente | Corriger les problèmes listés dans le rapport QA |
 
 ---

@@ -32,16 +32,16 @@ Non, le backend et le pipeline sont deux choses différentes.
 Données brutes
      │
      ▼
-  ÉTAPE 1 — DataProcessor    (normalisation)
+  ÉTAPE 1 — DataProcessor    (nettoyage : encodage, valeurs manquantes ; PAS de normalisation)
      │
      ▼
   ÉTAPE 2 — AHP              (calcul des poids)
      │
      ▼
-  ÉTAPE 3 — TOPSIS           (classement multicritère)
+  ÉTAPE 3 — TOPSIS           (classement multicritère ; normalisation vectorielle interne)
      │
      ▼
-  ÉTAPE 4 — MLTrainer        (classification 4 niveaux)
+  ÉTAPE 4 — MLTrainer        (classification ; normalisation par fold dans un Pipeline)
      │
      ▼
   ÉTAPE 5 — HybridRanker     (fusion TOPSIS + ML)
@@ -49,6 +49,11 @@ Données brutes
      ▼
   Résultats JSON
 ```
+
+> Note d'architecture : la normalisation n'est volontairement **pas** faite dans DataProcessor.
+> Chaque consommateur normalise selon ses besoins — TOPSIS sur l'ensemble (normalisation
+> vectorielle), le ML par repli de validation croisée — ce qui évite la double normalisation
+> et la fuite de prétraitement côté ML.
 
 **Le pipeline est une fonctionnalité du backend**, pas le backend lui-même. Le backend fait aussi d'autres choses : recevoir les fichiers uploadés, servir les résultats en téléchargement, stocker l'historique, etc.
 
@@ -72,23 +77,51 @@ Le point le plus critique : le pipeline ML (entraînement + SHAP) peut prendre p
 
 ---
 
-## 4. Pourquoi 4 classes ML et pas 2 ?
+## 4. Combien de classes pour le ML ?
 
-Avec 2 classes (Admis / Refusé), le ML produirait un filtre binaire — un candidat est soit admis soit refusé. Cela ne permet pas de distinguer les niveaux à l'intérieur des admis.
+Le nombre de classes n'est **pas figé** : le système s'adapte au nombre de classes
+présentes dans la colonne de vérité terrain fournie par le responsable (au minimum 2).
 
-Avec 4 classes (Faible / Moyen / Bon / Excellent), le ML produit une hiérarchie. Les candidats Excellent sont ensuite départagés entre eux par le score final hybride. Cela donne un classement beaucoup plus nuancé et utile pour le responsable.
+- Avec **2 classes** (ex. Admis / Refusé), le ML produit un filtre binaire.
+- Avec **plusieurs classes** (ex. Non_classe / Moyen / Bon / Excellent), le ML produit une
+  hiérarchie plus fine ; les candidats d'une même classe sont ensuite départagés par le
+  score final hybride.
+
+Le choix relève du responsable : il dépend de la granularité de la décision à reproduire.
+Le système détecte automatiquement le nombre de classes et adapte sa métrique d'évaluation
+(ROC-AUC en binaire, F1-macro en multiclasse).
 
 ---
 
 ## 5. C'est quoi la vérité terrain (ground truth) ?
 
-La vérité terrain, c'est la référence fiable utilisée pour entraîner le modèle ML. Dans notre cas, les étiquettes de tier (Faible / Moyen / Bon / Excellent) ont été attribuées à partir des quartiles de la colonne `Moyenne_finale` :
+La vérité terrain, c'est la référence fiable utilisée pour entraîner le modèle ML : la
+classe réelle de chaque candidat, issue d'une décision passée connue.
 
-| Quartile | Tier |
-|----------|------|
-| < Q25 (11.02) | Faible |
-| Q25 – Q50 (12.14) | Moyen |
-| Q50 – Q75 (13.35) | Bon |
-| ≥ Q75 (13.35) | Excellent |
+**Point méthodologique important (à savoir présenter).** Une première version dérivait les
+étiquettes des **quartiles de la moyenne** (`Moyenne_finale`). C'était commode pour démarrer,
+mais cela créait une **fuite de données** (*target leakage*) : la cible était une simple
+fonction d'un critère (la moyenne), et comme la moyenne servait aussi de critère d'entrée,
+le modèle « relisait » la réponse au lieu de l'apprendre. Symptôme typique : des scores
+quasi parfaits (~98 %) aussi bien en entraînement qu'en test — signe d'une fuite, pas d'un
+bon modèle.
 
-Ce labeling par quartiles est une approche bootstrap — il permet de démarrer l'apprentissage sans données historiques validées. Au fur et à mesure que le responsable corrige les prédictions via le FeedbackModal, le modèle apprend de vraies décisions expertes et devient progressivement plus précis.
+**Correction adoptée.** La vérité terrain provient désormais du **classement réel** des
+candidats (`Classement`), une information **indépendante de la moyenne** (corrélation ≈ −0,08).
+Les classes sont construites à partir de ce classement :
+
+| Source | Classe |
+|--------|--------|
+| Candidats non classés | Non_classe |
+| Rangs les plus faibles | Moyen |
+| Rangs intermédiaires | Bon |
+| Meilleurs rangs | Excellent |
+
+Règle d'or qui en découle : **la colonne ayant servi à construire la vérité terrain ne doit
+jamais figurer parmi les critères** de classement. Après correction, le modèle atteint des
+scores honnêtes (~0,92 F1-macro sur les données de test jamais vues), validés par une série
+de tests anti-fuite (performance hors classe « Non_classe », sur dossiers complets, etc.).
+
+Enfin, le système reste **incrémental** : via le FeedbackModal, le responsable soumet de
+vraies décisions validées (n'importe quel jeu de classes ≥ 2), qui enrichissent l'historique
+et affinent le modèle au fil des sessions.

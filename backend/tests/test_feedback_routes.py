@@ -86,15 +86,53 @@ class TestFeedbackSubmit:
         )
         assert resp.status_code == 400
 
-    def test_submit_invalid_tier_values_returns_400(self, client):
-        bad_df = pd.DataFrame(
-            {"feat_a": [0.1, 0.5, 0.9, 0.3], "Validated_Tier": ["Low", "Mid", "High", "Top"]}
+    def test_submit_free_form_labels_accepted(self, client):
+        # Labels are now free-form: any class names are valid (>= 2 distinct).
+        df = pd.DataFrame(
+            {"feat_a": [0.1, 0.5, 0.9, 0.3], "Validated_Tier": ["Low", "Mid", "High", "Low"]}
         )
-        data = {"file": (io.BytesIO(_csv_bytes(bad_df)), "bad.csv")}
+        data = {"file": (io.BytesIO(_csv_bytes(df)), "free.csv")}
+        resp = client.post(
+            "/api/feedback/submit", data=data, content_type="multipart/form-data"
+        )
+        assert resp.status_code == 200
+
+    def test_submit_binary_labels_accepted(self, client):
+        # Two classes are enough (e.g. Admis / Refusé).
+        df = pd.DataFrame(
+            {"feat_a": [0.1, 0.5, 0.9, 0.3], "Validated_Tier": ["Admis", "Refuse", "Admis", "Refuse"]}
+        )
+        data = {"file": (io.BytesIO(_csv_bytes(df)), "binary.csv")}
+        resp = client.post(
+            "/api/feedback/submit", data=data, content_type="multipart/form-data"
+        )
+        assert resp.status_code == 200
+
+    def test_submit_single_class_returns_400(self, client):
+        # Fewer than 2 distinct classes is not learnable -> rejected.
+        df = pd.DataFrame(
+            {"feat_a": [0.1, 0.5, 0.9, 0.3], "Validated_Tier": ["Admis", "Admis", "Admis", "Admis"]}
+        )
+        data = {"file": (io.BytesIO(_csv_bytes(df)), "single.csv")}
         resp = client.post(
             "/api/feedback/submit", data=data, content_type="multipart/form-data"
         )
         assert resp.status_code == 400
+
+    def test_submit_excel_file_accepted(self, client):
+        df = pd.DataFrame(
+            {
+                "feat_a": [0.1, 0.5, 0.9, 0.3, 0.7],
+                "Validated_Tier": ["Bon", "Moyen", "Bon", "Excellent", "Moyen"],
+            }
+        )
+        buf = io.BytesIO()
+        df.to_excel(buf, index=False)
+        data = {"file": (io.BytesIO(buf.getvalue()), "feedback.xlsx")}
+        resp = client.post(
+            "/api/feedback/submit", data=data, content_type="multipart/form-data"
+        )
+        assert resp.status_code == 200
 
     def test_submit_missing_tier_column_returns_400(self, client):
         df = pd.DataFrame({"feat_a": [0.1, 0.5, 0.9, 0.3]})

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './LandingPage.css';
 
 const features = [
@@ -19,7 +19,7 @@ const features = [
       </svg>
     ),
     title: 'Classement TOPSIS',
-    description: "Ordonnez les candidats par proximité à la solution idéale. Les critères bénéfice et coût sont traités automatiquement après normalisation min-max.",
+    description: "Ordonnez les candidats par proximité à la solution idéale. Chaque critère est normalisé automatiquement lors du calcul (valeur haute = meilleur profil).",
     tag: 'Multi-Criteria Ranking',
   },
   {
@@ -30,20 +30,44 @@ const features = [
       </svg>
     ),
     title: 'Classification ML',
-    description: "Un ensemble de 5 classificateurs (Random Forest, Gradient Boosting, SVM…) s'entraîne sur vos données historiques pour prédire le tier de chaque candidat.",
+    description: "Plusieurs classificateurs (Random Forest, Gradient Boosting, SVM, XGBoost…) sont comparés ; le meilleur prédit la classe de chaque candidat, évalué honnêtement sur des données de test.",
     tag: 'Machine Learning',
   },
 ];
 
 const steps = [
   { num: '01', title: 'Import des données', desc: 'Chargez votre fichier CSV ou Excel. Un rapport qualité automatique vérifie les valeurs manquantes et les anomalies.' },
-  { num: '02', title: 'Sélection des critères', desc: "Choisissez les critères numériques et catégoriels. Définissez leur direction (bénéfice ↑ ou coût ↓) et la colonne cible pour le module ML." },
+  { num: '02', title: 'Sélection des critères', desc: "Choisissez les critères numériques et catégoriels (valeur haute = meilleur), et la colonne cible de vérité terrain pour le module ML." },
   { num: '03', title: 'Matrice AHP', desc: 'Renseignez vos préférences par paires. Les poids AHP sont calculés et le ratio de cohérence est vérifié automatiquement.' },
-  { num: '04', title: 'Analyse hybride', desc: "TOPSIS classe les alternatives. Le modèle ML prédit les tiers et enrichit le score final via la formule de fusion pondérée." },
+  { num: '04', title: 'Analyse hybride', desc: "TOPSIS classe les alternatives. Le modèle ML prédit les classes et enrichit le score final via la formule de fusion pondérée." },
   { num: '05', title: 'Résultats & Export', desc: "Consultez le classement détaillé avec les scores TOPSIS, les probabilités ML et les explications SHAP. Exportez en CSV ou Excel." },
 ];
 
-const LandingPage = ({ onStart }) => (
+const LandingPage = ({ onStart, onValidate }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close the menu on outside click or Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const handleMenuAction = (action) => {
+    setMenuOpen(false);
+    if (action) action();
+  };
+
+  return (
   <div className="landing">
 
     {/* ── Nav ── */}
@@ -60,10 +84,36 @@ const LandingPage = ({ onStart }) => (
         <div className="landing-nav-links">
           <button className="btn btn-primary" onClick={onStart}>
             Lancer l'application
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
           </button>
+
+          {/* ── Menu (extensible : validation, authentification, …) ── */}
+          <div className="nav-menu" ref={menuRef}>
+            <button
+              className="nav-menu-trigger"
+              onClick={() => setMenuOpen(o => !o)}
+              aria-haspopup="true"
+              aria-expanded={menuOpen}
+              aria-label="Ouvrir le menu"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2.5" strokeLinecap="round">
+                <line x1="3" y1="6"  x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="nav-menu-dropdown" role="menu">
+                <button className="nav-menu-item" role="menuitem" onClick={() => handleMenuAction(onValidate)}>
+                  Soumettre une validation
+                </button>
+                <button className="nav-menu-item nav-menu-item-disabled" role="menuitem" disabled title="Bientôt disponible">
+                  Connexion
+                  <span className="nav-menu-soon">bientôt</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>
@@ -81,9 +131,6 @@ const LandingPage = ({ onStart }) => (
         <div className="hero-actions">
           <button className="btn btn-hero-primary" onClick={onStart}>
             Commencer l'analyse
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
           </button>
         </div>
       </div>
@@ -153,6 +200,7 @@ const LandingPage = ({ onStart }) => (
       </div>
     </footer>
   </div>
-);
+  );
+};
 
 export default LandingPage;

@@ -4,13 +4,16 @@ These are stored as historical sessions used by MLTrainer for incremental learni
 """
 import json
 import logging
+import tempfile
 import time
 from pathlib import Path
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, request
+from werkzeug.utils import secure_filename
 
-from core.historical_store import HistoricalStore, TIER_LABELS, VALID_TIERS
+from core.file_reader import read_dataframe
+from core.historical_store import HistoricalStore
 
 bp = Blueprint("feedback", __name__, url_prefix="/api/feedback")
 logger = logging.getLogger(__name__)
@@ -20,20 +23,24 @@ SYSTEM_COLS = {
     "Final_Rank", "Classe_predite", "Predicted_Tier", "Validated_Tier",
 }
 
+ALLOWED_EXT = (".csv", ".xlsx", ".xls")
+MIN_CLASSES = 2   # ground-truth must have at least 2 distinct classes to be learnable
+
 
 @bp.route("/submit", methods=["POST"])
 def submit_feedback():
     """
-    Submit a validated ranking CSV for historical learning.
+    Submit a validated ranking file (CSV or Excel) for historical learning.
 
     Multipart form fields:
-      - file       : CSV file (required)
+      - file       : CSV / XLSX / XLS file (required)
       - session_id : string identifier (optional, auto-generated if absent)
       - criteria   : JSON array of column names to use as ML features (optional)
 
-    The CSV must contain either a 'Validated_Tier' column (preferred) or a
-    'Predicted_Tier' column that the responsable has already corrected.
-    Tier values must be one of: Faible | Moyen | Bon | Excellent
+    The file must contain a ground-truth label column: 'Validated_Tier'
+    (preferred), else 'Classe_predite' / 'Predicted_Tier'. Labels are free-form:
+    ANY class names are accepted as long as there are at least MIN_CLASSES
+    distinct values (the system is no longer tied to Faible/Moyen/Bon/Excellent).
     """
     try:
         if "file" not in request.files:
@@ -42,6 +49,12 @@ def submit_feedback():
         file = request.files["file"]
         if file.filename == "":
             return jsonify({"error": "No file selected"}), 400
+
+        fname = secure_filename(file.filename)
+        if not fname.lower().endswith(ALLOWED_EXT):
+            return jsonify(
+                {"error": "Format non supporté. Utilisez un fichier CSV, XLSX ou XLS."}
+            ), 400
 
         session_id = request.form.get(
             "session_id", f"session_{int(time.time())}"
@@ -53,13 +66,22 @@ def submit_feedback():
         except json.JSONDecodeError:
             return jsonify({"error": "Invalid JSON in 'criteria' field"}), 400
 
-        # Read uploaded file
+        # Persist to a temp file then read via the shared CSV/Excel reader
+        suffix = Path(fname).suffix
         try:
-            df = pd.read_csv(file)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                file.save(tmp.name)
+                tmp_path = tmp.name
+            df = read_dataframe(tmp_path)
         except Exception as exc:
-            return jsonify({"error": f"Cannot parse CSV: {exc}"}), 400
+            return jsonify({"error": f"Impossible de lire le fichier : {exc}"}), 400
+        finally:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except Exception:
+                pass
 
-        # Identify tier column
+        # Identify the ground-truth label column
         if "Validated_Tier" in df.columns:
             tier_col = "Validated_Tier"
         elif "Classe_predite" in df.columns:
@@ -70,22 +92,22 @@ def submit_feedback():
             return jsonify(
                 {
                     "error": (
-                        "Le CSV doit contenir une colonne 'Validated_Tier' "
-                        "(ou 'Classe_predite' si vous n'avez pas renommé). "
-                        f"Valeurs acceptées : {TIER_LABELS}"
+                        "Le fichier doit contenir une colonne de vérité terrain "
+                        "'Validated_Tier' (ou 'Classe_predite' si vous ne l'avez pas renommée)."
                     )
                 }
             ), 400
 
-        # Validate tier values
-        present = df[tier_col].dropna().unique().tolist()
-        invalid = [v for v in present if v not in VALID_TIERS]
-        if invalid:
+        # Free-form labels: keep rows with a non-empty label, require >= MIN_CLASSES.
+        labels = df[tier_col].astype(str).str.strip()
+        valid_mask = df[tier_col].notna() & (labels != "") & (labels.str.lower() != "nan")
+        distinct = sorted(labels[valid_mask].unique().tolist())
+        if len(distinct) < MIN_CLASSES:
             return jsonify(
                 {
                     "error": (
-                        f"Invalid tier values: {invalid}. "
-                        f"Accepted values: {TIER_LABELS}"
+                        f"La colonne '{tier_col}' doit contenir au moins {MIN_CLASSES} "
+                        f"classes distinctes (trouvé : {distinct or 'aucune'})."
                     )
                 }
             ), 400
@@ -107,17 +129,16 @@ def submit_feedback():
 
         if not feature_cols:
             return jsonify(
-                {"error": "No usable numeric feature columns found in the CSV"}
+                {"error": "Aucune colonne de critère numérique exploitable dans le fichier."}
             ), 400
 
-        # Keep only rows with a valid tier
-        mask = df[tier_col].isin(VALID_TIERS)
-        X = df.loc[mask, feature_cols].reset_index(drop=True)
-        y = df.loc[mask, tier_col].reset_index(drop=True)
+        # Keep only rows that carry a label
+        X = df.loc[valid_mask, feature_cols].reset_index(drop=True)
+        y = labels[valid_mask].reset_index(drop=True)
 
         if len(X) < 4:
             return jsonify(
-                {"error": f"Too few valid records ({len(X)}). Minimum 4 required."}
+                {"error": f"Trop peu d'enregistrements valides ({len(X)}). Minimum 4 requis."}
             ), 400
 
         store = HistoricalStore(current_app.config["HISTORICAL_FOLDER"])

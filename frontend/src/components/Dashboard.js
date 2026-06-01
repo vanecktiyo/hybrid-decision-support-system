@@ -113,7 +113,23 @@ const Dashboard = () => {
     setCurrentStep(stepId);
   };
 
-  if (currentStep === 'landing') return <LandingPage onStart={() => setCurrentStep('upload')} />;
+  if (currentStep === 'landing') {
+    return (
+      <>
+        <LandingPage
+          onStart={() => setCurrentStep('upload')}
+          onValidate={() => setShowFeedback(true)}
+        />
+        {showFeedback && (
+          <FeedbackModal
+            resultId={null}
+            criteriaColumns={[]}
+            onClose={() => setShowFeedback(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   const activeIdx = STEP_IDS.indexOf(currentStep);
 
