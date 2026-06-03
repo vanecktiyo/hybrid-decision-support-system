@@ -150,3 +150,5 @@ The validated data is stored in `backend/historical/` and automatically included
 ## Author
 
 Vaneck DAGAR — *Méthodes de prise de décision multicritère hybrides pour le classement des candidatures*, 2026
+
+

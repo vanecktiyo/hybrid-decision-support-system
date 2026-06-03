@@ -1,0 +1,108 @@
+\section{Résultats}
+
+% ── Jeu de données ──────────────────────────────────────────────────────────
+\begin{frame}{Jeu de données}
+  \textbf{815 candidatures} réelles, décrites par cinq critères :
+  \begin{itemize}\small
+    \item Moyenne, Niveau de mathématiques, Alternance, Licence EDN, Diplôme normalisé.
+  \end{itemize}
+  Vérité terrain : le \textbf{classement réel} des candidats.
+  \vspace{0.4em}
+  \begin{block}{Caractère paramétrable}
+    Les critères ne sont pas figés : l'utilisateur les choisit et les configure selon la
+    formation visée.
+  \end{block}
+\end{frame}
+
+% ── La fuite de données ─────────────────────────────────────────────────────
+\begin{frame}{Un cas révélateur : la fuite de données}
+  \textbf{Symptôme.} Première version : exactitude $\approx$ \alert{98\%}, en
+  entraînement \emph{et} en test. Trop beau pour être vrai.
+
+  \vspace{0.5em}
+  \textbf{Diagnostic.} La cible (les classes) était dérivée de la \alert{moyenne}\dots\
+  qui était aussi un critère d'entrée. Le modèle \emph{relisait} la réponse.
+
+  \vspace{0.5em}
+  \begin{center}\small
+  \begin{tabularx}{0.75\textwidth}{Xc}
+    \toprule
+    \textbf{Variables utilisées} & \textbf{$F_1$-macro} \\
+    \midrule
+    Avec moyenne (label dérivé de la moyenne) & \textcolor{bad}{$\approx 0{,}98$} \\
+    Moyenne seule & $0{,}82$ \\
+    Sans aucune information de moyenne & \textcolor{good}{$0{,}70$} \\
+    \bottomrule
+  \end{tabularx}
+  \end{center}
+  \footnotesize La performance s'effondre sans la moyenne : la difficulté réelle était masquée.
+\end{frame}
+
+% ── Correction + rigueur ────────────────────────────────────────────────────
+\begin{frame}{Correction et rigueur d'évaluation}
+  \textbf{Correction.} Vérité terrain redéfinie à partir du \alert{classement réel},
+  indépendant de la moyenne (corrélation $\approx -0{,}08$).
+
+  \vspace{0.5em}
+  \textbf{Trois garde-fous contre la fuite :}
+  \begin{enumerate}\small
+    \item normalisation \alert{par repli} (pipeline), jamais sur les données de test ;
+    \item \alert{jeu de test indépendant} (mis de côté avant l'entraînement) ;
+    \item \alert{indépendance cible--critères} : la variable source du label n'est pas un
+          critère.
+  \end{enumerate}
+  \vspace{0.4em}
+  \begin{block}{Leçon}
+    Une performance élevée n'a de valeur que si l'évaluation est méthodologiquement saine.
+  \end{block}
+\end{frame}
+
+% ── Performance honnête ─────────────────────────────────────────────────────
+\begin{frame}{Performance après correction (jeu de test)}
+  \begin{columns}[T]
+    \begin{column}{0.46\textwidth}
+      \begin{block}{Sur données jamais vues}
+        \begin{itemize}
+          \item Exactitude : $\approx 0{,}95$
+          \item $F_1$-macro : \textbf{$\approx 0{,}93$}
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.54\textwidth}
+      \small
+      \begin{tabularx}{\textwidth}{Xc}
+        \toprule
+        \textbf{Classe} & \textbf{$F_1$} \\
+        \midrule
+        Non\_classé ($n=405$) & 0{,}99 \\
+        Bon ($n=210$) & 0{,}95 \\
+        Moyen ($n=140$) & 0{,}93 \\
+        Excellent ($n=60$, rare) & \textbf{0{,}93} \\
+        \bottomrule
+      \end{tabularx}
+    \end{column}
+  \end{columns}
+  \vspace{0.6em}
+  \footnotesize Performance \alert{équilibrée jusqu'à la classe rare}. Vérifiée par trois
+  tests anti-artefact (hors classe majoritaire, dossiers complets, complétude seule).
+\end{frame}
+
+% ── Explicabilité + capture ─────────────────────────────────────────────────
+\begin{frame}{Explicabilité : double justification}
+  \begin{columns}[c]
+    \begin{column}{0.5\textwidth}
+      Chaque candidat dispose d'une justification :
+      \begin{itemize}\small
+        \item \textbf{TOPSIS} : contribution de chaque critère au score ;
+        \item \textbf{SHAP} : contribution de chaque variable à la prédiction du modèle.
+      \end{itemize}
+      \vspace{0.4em}
+      Le décideur comprend \emph{pourquoi} un candidat occupe un rang.
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{center}
+        \includegraphics[width=\textwidth,height=5cm,keepaspectratio]{ui_shap.png}
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}

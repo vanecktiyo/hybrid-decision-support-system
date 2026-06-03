@@ -1,0 +1,99 @@
+\section{Contexte et objectifs}
+
+% ── Contexte / problématique ────────────────────────────────────────────────
+\begin{frame}{Contexte et problématique}
+  \textbf{Classer des candidatures académiques} mobilise plusieurs critères et plusieurs
+  décideurs : un processus difficile à rendre \alert{objectif, cohérent et transparent}.
+
+  \vspace{0.6em}
+  \begin{itemize}
+    \item Subjectivité des jugements, pondération implicite des critères.
+    \item Les critères pertinents \alert{varient d'une formation à l'autre}
+          (parcours, compétences, résultats, expériences).
+    \item \textbf{Besoin} : un outil \alert{paramétrable}, transparent et qui s'améliore
+          avec les décisions passées.
+  \end{itemize}
+
+  \vspace{0.6em}
+  \begin{block}{Question centrale}
+    Comment combiner la rigueur d'une méthode multicritère et la capacité prédictive de
+    l'apprentissage automatique, tout en restant \emph{générique}, \emph{explicable} et
+    \emph{rigoureusement évalué} ?
+  \end{block}
+\end{frame}
+
+% ── Objectifs ───────────────────────────────────────────────────────────────
+\begin{frame}{Objectifs}
+  Concevoir un système hybride d'aide à la décision qui :
+  \begin{enumerate}
+    \item pondère les critères par \textbf{AHP} \footnotesize(\emph{Analytic Hierarchy
+          Process})\normalsize{} avec contrôle de cohérence ;
+    \item classe les candidats par \textbf{TOPSIS} \footnotesize(\emph{Technique for Order
+          of Preference by Similarity to Ideal Solution})\normalsize{} ;
+    \item prédit une classe via un \textbf{modèle d'apprentissage} appris sur une vérité
+          terrain, évalué \alert{sans fuite de données} ;
+    \item combine les deux par une \textbf{fusion hybride} pondérée ;
+    \item \textbf{justifie} chaque décision : contributions par critère (TOPSIS) et par
+          variable via \textbf{SHAP} \footnotesize(\emph{SHapley Additive exPlanations})\normalsize.
+  \end{enumerate}
+\end{frame}
+
+% ── État de l'art ───────────────────────────────────────────────────────────
+\section{État de l'art}
+
+% ── Diagramme PRISMA ────────────────────────────────────────────────────────
+\begin{frame}{Méthodologie de la revue (PRISMA)}
+  \begin{center}
+  \begin{tikzpicture}[
+    box/.style={rectangle, draw=primary, fill=softgray, rounded corners,
+                text width=5.4cm, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
+    excl/.style={rectangle, draw=gray, fill=white, rounded corners,
+                text width=3.8cm, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
+    arr/.style={-{Latex[length=1.6mm]}, thick, draw=primary},
+    earr/.style={-{Latex[length=1.6mm]}, semithick, draw=gray},
+    node distance=0.45cm and 1.2cm
+  ]
+    \node[box] (id) {Notices identifiées (5 bases) : \textbf{n = 142}};
+    \node[box, below=of id] (dedup) {Après suppression des doublons : \textbf{n = 119}};
+    \node[box, below=of dedup] (full) {Évalués en texte intégral : \textbf{n = 64}};
+    \node[box, below=of full, fill=primary, text=white] (incl) {Inclus dans la synthèse : \textbf{n = 56} (dont 12 principaux)};
+
+    \node[excl, right=of dedup] (ex1) {Doublons : \textbf{23}};
+    \node[excl, right=of full] (ex2) {Exclus (titre/résumé, non récupérés, hors champ) : \textbf{63}};
+
+    \draw[arr] (id)--(dedup);
+    \draw[arr] (dedup)--(full);
+    \draw[arr] (full)--(incl);
+    \draw[earr] (dedup.east)--(ex1.west);
+    \draw[earr] (full.east)--(ex2.west);
+  \end{tikzpicture}
+  \end{center}
+  \footnotesize Sources : IEEE Xplore, ScienceDirect, SpringerLink, ACM DL, Google Scholar.
+\end{frame}
+
+% ── Synthèse / positionnement ───────────────────────────────────────────────
+\begin{frame}{Positionnement}
+  \vspace{0.3em}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{Ce que dit la littérature}
+      \begin{itemize}\small
+        \item AHP--TOPSIS : mûr pour la sélection, mais \alert{normatif} (n'exploite pas
+              l'historique).
+        \item Hybridation \textbf{MCDM} \scriptsize(aide à la décision multicritère)\small{}
+              + ML \scriptsize(apprentissage automatique)\small{} : prometteuse et générique.
+        \item Explicabilité (SHAP) : exigence croissante.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{Verrou peu traité}
+      \begin{itemize}\small
+        \item La \alert{validité de l'évaluation} du modèle (risque de \emph{fuite de
+              données}) est rarement discutée dans les travaux appliqués.
+      \end{itemize}
+      \vspace{0.4em}
+      \footnotesize Inspirations principales : Poongothai \textit{et al.} (2025),
+      James \textit{et al.} (2023).
+    \end{column}
+  \end{columns}
+\end{frame}

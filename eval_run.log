@@ -1,0 +1,65 @@
+[1] Jointure : 815 candidats | features = ['Moyenne', 'Niveau_Math', 'Alternance', 'Licence_EDN', 'Diplome_norm']
+[2] Split stratifié : 652 train / 163 test
+[3] Comparaison des modèles (VC 5 replis, sur le train)...
+     Forêt aléatoire        F1-macro=0.8992  acc=0.9294
+     Gradient Boosting      F1-macro=0.8751  acc=0.9156
+     Arbre de décision      F1-macro=0.8575  acc=0.9034
+     Régression logistique  F1-macro=0.7903  acc=0.8267
+     SVM (RBF)              F1-macro=0.7886  acc=0.8297
+     XGBoost                F1-macro=0.8597  acc=0.9049
+    -> meilleur modèle : Forêt aléatoire (F1-macro VC = 0.8992)
+[4] Optimisation (RandomizedSearchCV) de la forêt aléatoire...
+     meilleur F1-macro VC après réglage = 0.9039
+     paramètres = {'model__n_estimators': 100, 'model__min_samples_split': 10, 'model__min_samples_leaf': 2, 'model__max_depth': 10}
+     -> configuration réglée RETENUE (améliore le défaut).
+[5] Modèle retenu réentraîné sur le train, prédiction du test (163)
+
+=== COMPARAISON DES MODÈLES (VC, train) ===
+               modele  f1_macro_vc  f1_macro_ecart_type  precision_vc
+      Forêt aléatoire       0.8992               0.0416        0.9294
+    Gradient Boosting       0.8751               0.0435        0.9156
+              XGBoost       0.8597               0.0575        0.9049
+    Arbre de décision       0.8575               0.0499        0.9034
+Régression logistique       0.7903               0.0284        0.8267
+            SVM (RBF)       0.7886               0.0276        0.8297
+
+=== PERFORMANCE DU MODÈLE RETENU (test) ===
+                 indicateur          valeur
+              Modèle retenu Forêt aléatoire
+          Exactitude (test)          0.9571
+            F1-macro (test)          0.9453
+F1-macro VC (train, retenu)          0.9039
+                     n_test             163
+       F1 classe Non_classe          0.9814
+    support test Non_classe              81
+            F1 classe Moyen          0.8889
+         support test Moyen              28
+              F1 classe Bon          0.9545
+           support test Bon              42
+        F1 classe Excellent          0.9565
+     support test Excellent              12
+
+=== MATRICE DE CONFUSION (test) ===
+                 pred_Non_classe  pred_Moyen  pred_Bon  pred_Excellent
+vrai_Non_classe               79           2         0               0
+vrai_Moyen                     0          24         4               0
+vrai_Bon                       0           0        42               0
+vrai_Excellent                 1           0         0              11
+
+=== CLASSEMENT : TOPSIS vs ML vs FUSION (test) ===
+         methode  spearman_vs_classement_reel spearman_pvalue  precision_top20_rang  precision_top20_classe_bon_excellent
+     TOPSIS_seul                       0.5134        2.43e-12                0.6970                                0.6970
+         ML_seul                       0.5376        1.36e-13                0.4848                                0.6970
+Fusion_alpha_0.6                       0.5115        3.01e-12                0.7576                                0.7576
+
+=== BALAYAGE DE ALPHA (test) ===
+ alpha         composition  spearman_vs_classement_reel  precision_top20_rang  precision_top20_classe_bon_excellent
+   1.0         TOPSIS seul                       0.5134                0.6970                                0.6970
+   0.8 0.8 TOPSIS + 0.2 ML                       0.5188                0.7576                                0.7576
+   0.6 0.6 TOPSIS + 0.4 ML                       0.5115                0.7576                                0.7576
+   0.4 0.4 TOPSIS + 0.6 ML                       0.5231                0.6364                                0.6970
+   0.2 0.2 TOPSIS + 0.8 ML                       0.5283                0.5152                                0.6970
+   0.0             ML seul                       0.5376                0.4848                                0.6970
+
+[OK] CSV -> C:\Users\dagar\Desktop\Projet_init\version_2\evaluation\results
+[OK] Figure -> C:\Users\dagar\Desktop\Projet_init\version_2\rapport\images\alpha_sweep.png

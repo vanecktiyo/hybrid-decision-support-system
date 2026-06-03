@@ -1,0 +1,114 @@
+\section{Méthode}
+
+% ── Architecture ────────────────────────────────────────────────────────────
+\begin{frame}{Architecture du système}
+  Architecture découplée \textbf{client--serveur}, échanges JSON.
+  \vspace{0.4em}
+  \begin{center}
+  \begin{tikzpicture}[
+    comp/.style={rectangle, draw=primary, fill=softgray, rounded corners,
+                 text width=3cm, align=center, inner sep=5pt, font=\small, minimum height=0.9cm},
+    core/.style={rectangle, draw=mlpurple, fill=mlpurple!8, rounded corners,
+                 text width=2.3cm, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
+    arr/.style={-{Latex[length=2mm]}, thick, draw=primary}
+  ]
+    \node[comp] (front) {\textbf{Frontend React}\\ \scriptsize 5 étapes guidées};
+    \node[comp, right=2.6cm of front] (api) {\textbf{Backend Flask}\\ \scriptsize API REST};
+    \node[core, right=2.2cm of api, yshift=1.0cm] (ahp) {AHP};
+    \node[core, below=0.2cm of ahp] (topsis) {TOPSIS};
+    \node[core, below=0.2cm of topsis] (ml) {ML + SHAP};
+    \node[core, below=0.2cm of ml] (hyb) {Fusion};
+    \draw[arr] (front) -- node[above,font=\scriptsize]{JSON} (api);
+    \draw[arr] (api.east) -- ($(ahp.west)+(0,-0.9)$);
+    \begin{scope}[on background layer]
+      \node[draw=mlpurple, dashed, rounded corners, fit=(ahp)(topsis)(ml)(hyb),
+            label={[font=\scriptsize, text=mlpurple]above:Modules métier}] {};
+    \end{scope}
+  \end{tikzpicture}
+  \end{center}
+  \footnotesize Stockage léger par fichiers (prototype) ; base de données prévue en
+  perspective.
+\end{frame}
+
+% ── Pipeline ────────────────────────────────────────────────────────────────
+\begin{frame}{Pipeline de traitement}
+  \begin{center}
+  \begin{tikzpicture}[
+    node distance=0.4cm,
+    pstep/.style={rectangle, draw=primary, fill=softgray, rounded corners,
+                 text width=10.5cm, align=center, inner sep=4pt, font=\small, minimum height=0.7cm},
+    arr/.style={-{Latex[length=2mm]}, thick, draw=primary}
+  ]
+    \node[pstep] (s1) {\textbf{1. Nettoyage} : encodage, valeurs manquantes (\emph{sans normalisation})};
+    \node[pstep, below=of s1] (s2) {\textbf{2. AHP} : poids des critères + cohérence (CR)};
+    \node[pstep, below=of s2] (s3) {\textbf{3. TOPSIS} : normalisation vectorielle, score $C_i$};
+    \node[pstep, below=of s3] (s4) {\textbf{4. Apprentissage} : split, pipeline par repli, meilleur modèle, SHAP};
+    \node[pstep, below=of s4, fill=primary, text=white] (s5) {\textbf{5. Fusion} : $\text{Score} = \alpha\,C_i + (1-\alpha)\,P(\text{meilleure classe})$};
+    \draw[arr] (s1)--(s2); \draw[arr] (s2)--(s3); \draw[arr] (s3)--(s4); \draw[arr] (s4)--(s5);
+  \end{tikzpicture}
+  \end{center}
+  \footnotesize Normalisation déléguée à chaque étape : évite la double normalisation et la
+  fuite de prétraitement.
+\end{frame}
+
+% ── AHP ─────────────────────────────────────────────────────────────────────
+\begin{frame}{AHP : pondération des critères}
+  À partir d'une matrice de comparaison par paires $A=(a_{ij})$ (échelle de Saaty,
+  $a_{ji}=1/a_{ij}$), les poids sont le \alert{vecteur propre principal} :
+  \[
+    A\,w = \lambda_{\max}\,w, \qquad \sum_i w_i = 1.
+  \]
+  La cohérence des jugements est contrôlée par le ratio de cohérence :
+  \[
+    CI = \frac{\lambda_{\max}-n}{n-1}, \qquad CR = \frac{CI}{RI}, \qquad
+    \text{(valide si } CR < 0{,}10 \text{)}.
+  \]
+  \begin{block}{Idée}
+    Le décideur exprime ses \emph{préférences relatives} ; l'AHP en déduit des poids
+    cohérents, ou signale une incohérence à corriger.
+  \end{block}
+\end{frame}
+
+% ── TOPSIS ──────────────────────────────────────────────────────────────────
+\begin{frame}{TOPSIS : classement des candidats}
+  Matrice pondérée normalisée, puis distances aux solutions idéales :
+  \[
+    v_{ij} = w_j \cdot \frac{x_{ij}}{\sqrt{\sum_k x_{kj}^2}}, \qquad
+    v_j^{+}=\max_i v_{ij}, \quad v_j^{-}=\min_i v_{ij}.
+  \]
+  \[
+    S_i^{\pm} = \sqrt{\textstyle\sum_j (v_{ij}-v_j^{\pm})^2}, \qquad
+    C_i = \frac{S_i^{-}}{S_i^{+}+S_i^{-}} \in [0,1].
+  \]
+  Les candidats sont classés par $C_i$ décroissant (tous critères en bénéfice :
+  valeur haute = meilleur profil).
+  \vspace{0.4em}
+  \begin{block}{Transparence}
+    Chaque rang est expliqué par la contribution de chaque critère au score.
+  \end{block}
+\end{frame}
+
+% ── Module ML ───────────────────────────────────────────────────────────────
+\begin{frame}{Module d'apprentissage : plusieurs modèles comparés}
+  Le système n'entraîne pas un seul modèle : il \alert{compare six classifieurs} et
+  sélectionne automatiquement le meilleur (validation croisée), puis règle ses
+  hyperparamètres.
+  \vspace{0.4em}
+  \begin{center}
+  \small
+  \begin{tabularx}{0.8\textwidth}{Xcc}
+    \toprule
+    \textbf{Modèle} & \textbf{$F_1$-macro (VC)} & \textbf{Précision} \\
+    \midrule
+    \textbf{Forêt aléatoire} (retenue) & \textbf{0{,}944} & 0{,}945 \\
+    Gradient Boosting & 0{,}929 & 0{,}946 \\
+    XGBoost & 0{,}916 & 0{,}934 \\
+    Arbre de décision & 0{,}916 & 0{,}934 \\
+    Régression logistique & 0{,}825 & 0{,}850 \\
+    SVM (RBF) & 0{,}781 & 0{,}822 \\
+    \bottomrule
+  \end{tabularx}
+  \end{center}
+  \footnotesize Métrique adaptée au nombre de classes ; déséquilibre géré
+  (\texttt{class\_weight}, stratification).
+\end{frame}

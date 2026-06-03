@@ -1,0 +1,4 @@
+﻿methode,spearman_vs_classement_reel,spearman_pvalue,precision_top20_rang,precision_top20_classe_bon_excellent
+TOPSIS_seul,0.5134,2.43e-12,0.697,0.697
+ML_seul,0.5376,1.36e-13,0.4848,0.697
+Fusion_alpha_0.6,0.5115,3.01e-12,0.7576,0.7576

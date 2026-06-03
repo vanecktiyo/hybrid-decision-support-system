@@ -1,0 +1,6 @@
+\babel@toc {french}{}\relax 
+\beamer@sectionintoc {1}{Contexte et objectifs}{3}{0}{1}
+\beamer@sectionintoc {2}{État de l'art}{5}{0}{2}
+\beamer@sectionintoc {3}{Méthode}{7}{0}{3}
+\beamer@sectionintoc {4}{Résultats}{12}{0}{4}
+\beamer@sectionintoc {5}{Perspectives et conclusion}{17}{0}{5}

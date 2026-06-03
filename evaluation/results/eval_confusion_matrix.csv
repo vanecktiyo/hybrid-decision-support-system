@@ -1,0 +1,5 @@
+﻿,pred_Non_classe,pred_Moyen,pred_Bon,pred_Excellent
+vrai_Non_classe,79,2,0,0
+vrai_Moyen,0,24,4,0
+vrai_Bon,0,0,42,0
+vrai_Excellent,1,0,0,11

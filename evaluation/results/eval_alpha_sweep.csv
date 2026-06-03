@@ -1,0 +1,7 @@
+﻿alpha,composition,spearman_vs_classement_reel,precision_top20_rang,precision_top20_classe_bon_excellent
+1.0,TOPSIS seul,0.5134,0.697,0.697
+0.8,0.8 TOPSIS + 0.2 ML,0.5188,0.7576,0.7576
+0.6,0.6 TOPSIS + 0.4 ML,0.5115,0.7576,0.7576
+0.4,0.4 TOPSIS + 0.6 ML,0.5231,0.6364,0.697
+0.2,0.2 TOPSIS + 0.8 ML,0.5283,0.5152,0.697
+0.0,ML seul,0.5376,0.4848,0.697

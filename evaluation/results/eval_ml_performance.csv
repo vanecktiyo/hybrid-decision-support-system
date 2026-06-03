@@ -1,0 +1,14 @@
+﻿indicateur,valeur
+Modèle retenu,Forêt aléatoire
+Exactitude (test),0.9571
+F1-macro (test),0.9453
+"F1-macro VC (train, retenu)",0.9039
+n_test,163
+F1 classe Non_classe,0.9814
+support test Non_classe,81
+F1 classe Moyen,0.8889
+support test Moyen,28
+F1 classe Bon,0.9545
+support test Bon,42
+F1 classe Excellent,0.9565
+support test Excellent,12

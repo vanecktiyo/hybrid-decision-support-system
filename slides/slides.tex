@@ -1,0 +1,73 @@
+% ============================================================================
+%  Présentation — Système d'aide intelligente au classement des candidatures
+%  Vaneck Duramel DAGAR TIYO — 2026
+%  Compilation : latexmk -pdf slides.tex
+% ============================================================================
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc,fit,backgrounds}
+
+% ── Thème ───────────────────────────────────────────────────────────────────
+\usetheme{Madrid}
+\usecolortheme{default}
+\definecolor{primary}{HTML}{1B3A6B}
+\definecolor{accent}{HTML}{2563EB}
+\definecolor{mlpurple}{HTML}{7C3AED}
+\definecolor{softgray}{HTML}{F1F4F9}
+\definecolor{good}{HTML}{0A7C42}
+\definecolor{bad}{HTML}{B3261E}
+
+\setbeamercolor{structure}{fg=primary}
+\setbeamercolor{frametitle}{bg=primary,fg=white}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{caption}[numbered]
+\setbeamerfont{frametitle}{size=\large}
+
+% Pied de page compact
+\setbeamertemplate{footline}{%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.4ex,dp=1ex,leftskip=1em]{author in head/foot}%
+      \scriptsize V. DAGAR TIYO%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.4ex,dp=1ex,rightskip=1em]{title in head/foot}%
+      \hfill\scriptsize Classement intelligent de candidatures \quad \insertframenumber/\inserttotalframenumber%
+    \end{beamercolorbox}%
+  }%
+}
+
+% ── Métadonnées ─────────────────────────────────────────────────────────────
+\title[Classement intelligent de candidatures]{Système d'aide intelligente\\au classement des candidatures académiques}
+\subtitle{Intégration de l'AHP, de TOPSIS et de l'apprentissage automatique explicable}
+\author[V. DAGAR TIYO]{Vaneck Duramel DAGAR TIYO}
+\institute[UCL]{Université Catholique de Lille\\ \footnotesize Encadrants : Faiza AJMI \& Jalal POSSIK}
+\date{\today}
+
+\begin{document}
+
+% ── Titre ───────────────────────────────────────────────────────────────────
+\begin{frame}[plain]
+  \titlepage
+  \begin{center}
+    \includegraphics[height=1.2cm]{logo.png}
+  \end{center}
+\end{frame}
+
+% ── Plan ────────────────────────────────────────────────────────────────────
+\begin{frame}{Plan}
+  \tableofcontents
+\end{frame}
+
+\input{frames/01_contexte}
+\input{frames/02_methode}
+\input{frames/03_resultats}
+\input{frames/04_conclusion}
+
+\end{document}

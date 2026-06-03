@@ -255,18 +255,12 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
         </div>
       </div>
 
-      {/* ── ML Model Comparison ── */}
+      {/* ── ML Model ── */}
       {hasModelResults && (
         <div className="ml-section">
-          <h3>Comparaison des modèles ML</h3>
-          <p className="ml-cv-note">
-            Scores de sélection ci-dessous obtenus par <strong>validation croisée</strong> (5-fold)
-            sur les données d'entraînement. Ils servent à choisir le meilleur modèle, à ne pas
-            confondre avec la performance sur les données de test affichée plus haut.
-          </p>
+          <h3>Modèle d'apprentissage</h3>
           <p className="ml-subtitle">
-            Meilleur modèle : <strong>{ml.best_model_display}</strong>
-            &nbsp;({ml.metric_label || 'F1-macro'} = {ml.best_f1_macro?.toFixed(4)})
+            Modèle utilisé : <strong>{ml.best_model_display}</strong>
             &nbsp;· entraîné sur {ml.n_samples} échantillons, {ml.n_features} critères
             {ml.class_distribution && (
               <> · Distribution : {Object.entries(ml.class_distribution).map(([k, v]) => `${k}:${v}`).join(', ')}</>
@@ -309,6 +303,11 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
               Les scores ci-dessous sont issus de la validation croisée uniquement.
             </p>
           )}
+          <p className="ml-cv-note">
+            Les scores ci-dessous sont obtenus par <strong>validation croisée</strong> sur les
+            données d'entraînement, à ne pas confondre avec la performance sur les données de
+            test affichée plus haut.
+          </p>
           <div className="table-container">
             <table className="results-table">
               <thead>
@@ -316,16 +315,13 @@ const ResultsViewer = ({ results, criteria = [], onError = () => {}, onValidate,
                   <th>Modèle</th>
                   <th>{ml.metric_label || 'F1-macro'} (CV)</th>
                   <th>Précision (CV)</th>
-                  <th>Statut</th>
+                  <th>Validation</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(ml.model_results).map(([key, m]) => (
-                  <tr key={key} className={key === ml.best_model ? 'best-model-row' : ''}>
-                    <td>
-                      {m.display_name}
-                      {key === ml.best_model && <span className="best-badge"> ★ Meilleur</span>}
-                    </td>
+                  <tr key={key}>
+                    <td>{m.display_name}</td>
                     <td>{m.f1_macro != null ? m.f1_macro.toFixed(4) : '—'}</td>
                     <td>{m.accuracy != null ? m.accuracy.toFixed(4) : '—'}</td>
                     <td className={m.status === 'success' ? 'status-ok' : 'status-fail'}>

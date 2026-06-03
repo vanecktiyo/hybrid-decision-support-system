@@ -1,30 +1,26 @@
 """
-ML Trainer - Classification 4 tiers with SHAP explainability.
-Tiers (ascending): Faible(0) | Moyen(1) | Bon(2) | Excellent(3)
-Selection criterion: best cross-validated F1-macro.
-SHAP: TreeExplainer for tree models, LinearExplainer for linear models.
-Learns from current session (bootstrap via quartile binning) + historical validated rankings.
+ML Trainer - Classification with SHAP explainability.
+
+The deployed model is Random Forest: a comparative study (see report) showed it to be
+the best performer among several candidates (Gradient Boosting, Decision Tree, Logistic
+Regression, SVM, XGBoost) on this task. The training pipeline remains unchanged
+(leak-free cross-validation, RandomizedSearchCV tuning, stratified hold-out, SHAP).
+
+Class labels are free-form (any number of classes >= 2). Metric: F1-macro
+(ROC-AUC for binary targets). Learns from the current session + matching historical
+validated rankings.
 """
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, RandomizedSearchCV, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
 
 from core.config_manager import get_settings
-
-try:
-    from xgboost import XGBClassifier
-    _XGBOOST_AVAILABLE = True
-except ImportError:
-    _XGBOOST_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -32,34 +28,16 @@ TIER_LABELS = ["Faible", "Moyen", "Bon", "Excellent"]
 EXCELLENT_IDX = 3  # index of the "Excellent" class in TIER_LABELS
 
 def _build_candidate_models() -> Dict[str, Any]:
-    models = {
+    # The application uses Random Forest only: a comparative study (see report)
+    # showed it to be the best model on this task. The selection loop is kept
+    # generic (it simply iterates over a single candidate here), so the cross-
+    # validation, tuning and hold-out steps remain unchanged.
+    return {
         "random_forest": RandomForestClassifier(
             n_estimators=100, max_depth=10, min_samples_split=5,
             class_weight="balanced", random_state=42
         ),
-        "gradient_boosting": GradientBoostingClassifier(
-            n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42
-        ),
-        "decision_tree": DecisionTreeClassifier(
-            max_depth=8, min_samples_split=5,
-            class_weight="balanced", random_state=42
-        ),
-        "logistic_regression": LogisticRegression(
-            max_iter=1000, C=1.0, solver="lbfgs",
-            class_weight="balanced", random_state=42
-        ),
-        "svm": SVC(
-            probability=True, kernel="rbf", C=1.0,
-            class_weight="balanced", random_state=42
-        ),
     }
-    if _XGBOOST_AVAILABLE:
-        models["xgboost"] = XGBClassifier(
-            n_estimators=100, max_depth=5, learning_rate=0.1,
-            use_label_encoder=False, eval_metric="mlogloss",
-            random_state=42, verbosity=0
-        )
-    return models
 
 CANDIDATE_MODELS: Dict[str, Any] = _build_candidate_models()
 
@@ -70,43 +48,10 @@ PARAM_GRIDS: Dict[str, Any] = {
         "min_samples_split": [2, 5, 10],
         "min_samples_leaf": [1, 2, 4],
     },
-    "gradient_boosting": {
-        "n_estimators": [50, 100, 200],
-        "max_depth": [3, 5, 7],
-        "learning_rate": [0.05, 0.1, 0.2],
-        "min_samples_split": [2, 5],
-    },
-    "decision_tree": {
-        "max_depth": [3, 5, 8, 12, None],
-        "min_samples_split": [2, 5, 10],
-        "min_samples_leaf": [1, 2, 4],
-        "criterion": ["gini", "entropy"],
-    },
-    "logistic_regression": {
-        "C": [0.01, 0.1, 1.0, 10.0, 100.0],
-        "max_iter": [500, 1000, 2000],
-    },
-    "svm": {
-        "C": [0.1, 1.0, 10.0, 100.0],
-        "kernel": ["rbf", "linear"],
-        "gamma": ["scale", "auto"],
-    },
-    "xgboost": {
-        "n_estimators": [50, 100, 200],
-        "max_depth": [3, 5, 7],
-        "learning_rate": [0.05, 0.1, 0.2],
-        "subsample": [0.8, 1.0],
-        "colsample_bytree": [0.8, 1.0],
-    },
 }
 
 MODEL_DISPLAY_NAMES = {
     "random_forest": "Random Forest",
-    "gradient_boosting": "Gradient Boosting",
-    "decision_tree": "Decision Tree",
-    "logistic_regression": "Logistic Regression",
-    "svm": "SVM (RBF)",
-    "xgboost": "XGBoost",
 }
 
 # Built-in fallback defaults. The live values are read from config.yaml via
