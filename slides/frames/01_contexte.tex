@@ -2,98 +2,84 @@
 
 % ── Contexte / problématique ────────────────────────────────────────────────
 \begin{frame}{Contexte et problématique}
-  \textbf{Classer des candidatures académiques} mobilise plusieurs critères et plusieurs
-  décideurs : un processus difficile à rendre \alert{objectif, cohérent et transparent}.
-
-  \vspace{0.6em}
+  \textbf{Classer des candidatures} : plusieurs critères, plusieurs évaluateurs.
   \begin{itemize}
-    \item Subjectivité des jugements, pondération implicite des critères.
-    \item Les critères pertinents \alert{varient d'une formation à l'autre}
-          (parcours, compétences, résultats, expériences).
-    \item \textbf{Besoin} : un outil \alert{paramétrable}, transparent et qui s'améliore
-          avec les décisions passées.
+    \item Difficile à rendre \alert{objectif, transparent et sans ambiguïté}.
+    \item \alert{Chronophage} : traiter manuellement un grand volume de candidatures.
+    \item Critères \alert{variables d'une formation à l'autre}.
   \end{itemize}
-
-  \vspace{0.6em}
-  \begin{block}{Question centrale}
-    Comment combiner la rigueur d'une méthode multicritère et la capacité prédictive de
-    l'apprentissage automatique, tout en restant \emph{générique}, \emph{explicable} et
-    \emph{rigoureusement évalué} ?
+  \vspace{0.8em}
+  \begin{block}{Problématique}
+    Comment \alert{automatiser} ce classement de façon objective, transparente et explicable,
+    et qui s'améliore avec les décisions passées ?
   \end{block}
 \end{frame}
 
-% ── Objectifs ───────────────────────────────────────────────────────────────
-\begin{frame}{Objectifs}
-  Concevoir un système hybride d'aide à la décision qui :
-  \begin{enumerate}
-    \item pondère les critères par \textbf{AHP} \footnotesize(\emph{Analytic Hierarchy
-          Process})\normalsize{} avec contrôle de cohérence ;
-    \item classe les candidats par \textbf{TOPSIS} \footnotesize(\emph{Technique for Order
-          of Preference by Similarity to Ideal Solution})\normalsize{} ;
-    \item prédit une classe via un \textbf{modèle d'apprentissage} appris sur une vérité
-          terrain, évalué \alert{sans fuite de données} ;
-    \item combine les deux par une \textbf{fusion hybride} pondérée ;
-    \item \textbf{justifie} chaque décision : contributions par critère (TOPSIS) et par
-          variable via \textbf{SHAP} \footnotesize(\emph{SHapley Additive exPlanations})\normalsize.
-  \end{enumerate}
+% ── Objectif ─────────────────────────────────────────────────────────────────
+\begin{frame}{Objectif}
+  \centering
+  Concevoir un \textbf{outil générique} pour automatiser le classement de candidatures,
+  de manière transparente et explicable.
+  \vspace{1.0em}
+
+  \begin{tikzpicture}[
+    p/.style={rectangle, rounded corners, draw=primary, fill=softgray, thick,
+              text width=3.3cm, align=center, inner sep=6pt, minimum height=2.4cm}
+  ]
+    \node[p] (g) {\textbf{Générique}\\[4pt]\footnotesize critères et classes configurables};
+    \node[p, right=0.5cm of g] (e) {\textbf{Explicable}\\[4pt]\footnotesize chaque rang justifié};
+    \node[p, right=0.5cm of e] (a) {\textbf{Adaptatif}\\[4pt]\footnotesize s'améliore avec les décisions validées};
+  \end{tikzpicture}
 \end{frame}
 
-% ── État de l'art ───────────────────────────────────────────────────────────
+% ── État de l'art : PRISMA ──────────────────────────────────────────────────
 \section{État de l'art}
 
-% ── Diagramme PRISMA ────────────────────────────────────────────────────────
-\begin{frame}{Méthodologie de la revue (PRISMA)}
-  \begin{center}
+\begin{frame}{Revue systématique (PRISMA)}
+  \centering
+  \resizebox{!}{0.82\textheight}{%
   \begin{tikzpicture}[
+    node distance=0.9cm and 2.0cm,
     box/.style={rectangle, draw=primary, fill=softgray, rounded corners,
-                text width=5.4cm, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
+                text width=6.6cm, align=left, inner sep=6pt, font=\small},
     excl/.style={rectangle, draw=gray, fill=white, rounded corners,
-                text width=3.8cm, align=center, inner sep=3pt, font=\scriptsize, minimum height=0.7cm},
-    arr/.style={-{Latex[length=1.6mm]}, thick, draw=primary},
-    earr/.style={-{Latex[length=1.6mm]}, semithick, draw=gray},
-    node distance=0.45cm and 1.2cm
+                text width=4.4cm, align=left, inner sep=6pt, font=\footnotesize},
+    arr/.style={-{Latex[length=2mm]}, thick, draw=primary},
+    earr/.style={-{Latex[length=2mm]}, thick, draw=gray}
   ]
-    \node[box] (id) {Notices identifiées (5 bases) : \textbf{n = 142}};
-    \node[box, below=of id] (dedup) {Après suppression des doublons : \textbf{n = 119}};
-    \node[box, below=of dedup] (full) {Évalués en texte intégral : \textbf{n = 64}};
-    \node[box, below=of full, fill=primary, text=white] (incl) {Inclus dans la synthèse : \textbf{n = 56} (dont 12 principaux)};
-
-    \node[excl, right=of dedup] (ex1) {Doublons : \textbf{23}};
-    \node[excl, right=of full] (ex2) {Exclus (titre/résumé, non récupérés, hors champ) : \textbf{63}};
-
-    \draw[arr] (id)--(dedup);
-    \draw[arr] (dedup)--(full);
-    \draw[arr] (full)--(incl);
-    \draw[earr] (dedup.east)--(ex1.west);
-    \draw[earr] (full.east)--(ex2.west);
-  \end{tikzpicture}
-  \end{center}
-  \footnotesize Sources : IEEE Xplore, ScienceDirect, SpringerLink, ACM DL, Google Scholar.
+    \node[box] (id) {\textbf{Identification.} Notices identifiées via les bases de données (IEEE Xplore, ScienceDirect, SpringerLink, ACM DL, Google Scholar) : \textbf{n = 142}};
+    \node[box, below=of id] (dedup) {Notices après suppression des doublons : \textbf{n = 119}};
+    \node[box, below=of dedup] (screen) {Notices examinées (titre / résumé) : \textbf{n = 68}};
+    \node[box, below=of screen] (full) {Rapports évalués en texte intégral : \textbf{n = 29}};
+    \node[box, below=of full] (incl) {\textbf{Travaux inclus dans la synthèse : n = 29} \\ dont \textbf{8} retenus comme corpus principal};
+    \node[excl, right=of dedup] (ex1) {Doublons supprimés \\ \textbf{n = 23}};
+    \node[excl, right=of screen] (ex2) {Exclus au titre / résumé (hors champ) \\ \textbf{n = 51}};
+    \node[excl, right=of full, yshift=-0.7cm] (ex3) {Non récupérés : \textbf{n = 4} \\ Exclus après lecture : \textbf{n = 35} (pas de composante décisionnelle ; domaine non transposable)};
+    \draw[arr] (id) -- (dedup);
+    \draw[arr] (dedup) -- (screen);
+    \draw[arr] (screen) -- (full);
+    \draw[arr] (full) -- (incl);
+    \draw[earr] (dedup.east) -- (ex1.west);
+    \draw[earr] (screen.east) -- (ex2.west);
+    \draw[earr] (full.east) -- (ex3.west);
+  \end{tikzpicture}}
 \end{frame}
 
-% ── Synthèse / positionnement ───────────────────────────────────────────────
+% ── Positionnement ──────────────────────────────────────────────────────────
 \begin{frame}{Positionnement}
-  \vspace{0.3em}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \textbf{Ce que dit la littérature}
-      \begin{itemize}\small
-        \item AHP--TOPSIS : mûr pour la sélection, mais \alert{normatif} (n'exploite pas
-              l'historique).
-        \item Hybridation \textbf{MCDM} \scriptsize(aide à la décision multicritère)\small{}
-              + ML \scriptsize(apprentissage automatique)\small{} : prometteuse et générique.
-        \item Explicabilité (SHAP) : exigence croissante.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \textbf{Verrou peu traité}
-      \begin{itemize}\small
-        \item La \alert{validité de l'évaluation} du modèle (risque de \emph{fuite de
-              données}) est rarement discutée dans les travaux appliqués.
-      \end{itemize}
-      \vspace{0.4em}
-      \footnotesize Inspirations principales : Poongothai \textit{et al.} (2025),
-      James \textit{et al.} (2023).
-    \end{column}
-  \end{columns}
+  \centering
+  \vspace{0.4em}
+  \begin{tabularx}{0.96\textwidth}{Xccc}
+    \toprule
+    \textbf{Approche} & \textbf{Transparente} & \textbf{Apprend} & \textbf{Explicable} \\
+    \midrule
+    AHP--TOPSIS (multicritère) & \cmark & \xmark & partiel \\[2pt]
+    Apprentissage seul (ML) & \xmark & \cmark & \cmark{} (SHAP) \\[2pt]
+    \textbf{Notre système (hybride)} & \cmark & \cmark & \cmark \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{1.0em}
+  \footnotesize Dans le prolongement de Poongothai \textit{et al.} (2025) et
+  James \textit{et al.} (2023).
 \end{frame}

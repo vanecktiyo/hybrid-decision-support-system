@@ -62,3 +62,21 @@ data/raw/*.xlsx
 
 # Rapport LaTeX - not versioned
 rapport/
+
+# LaTeX build artifacts (slides and any stray output)
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.fls
+*.fdb_latexmk
+*.bbl
+*.bbl-SAVE-ERROR
+*.bcf
+*.blg
+*.lof
+*.lot
+*.run.xml
+*.synctex.gz

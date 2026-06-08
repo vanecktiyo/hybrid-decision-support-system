@@ -2,107 +2,140 @@
 
 % ── Jeu de données ──────────────────────────────────────────────────────────
 \begin{frame}{Jeu de données}
-  \textbf{815 candidatures} réelles, décrites par cinq critères :
-  \begin{itemize}\small
-    \item Moyenne, Niveau de mathématiques, Alternance, Licence EDN, Diplôme normalisé.
-  \end{itemize}
-  Vérité terrain : le \textbf{classement réel} des candidats.
-  \vspace{0.4em}
-  \begin{block}{Caractère paramétrable}
-    Les critères ne sont pas figés : l'utilisateur les choisit et les configure selon la
-    formation visée.
-  \end{block}
-\end{frame}
-
-% ── La fuite de données ─────────────────────────────────────────────────────
-\begin{frame}{Un cas révélateur : la fuite de données}
-  \textbf{Symptôme.} Première version : exactitude $\approx$ \alert{98\%}, en
-  entraînement \emph{et} en test. Trop beau pour être vrai.
-
-  \vspace{0.5em}
-  \textbf{Diagnostic.} La cible (les classes) était dérivée de la \alert{moyenne}\dots\
-  qui était aussi un critère d'entrée. Le modèle \emph{relisait} la réponse.
-
-  \vspace{0.5em}
-  \begin{center}\small
-  \begin{tabularx}{0.75\textwidth}{Xc}
-    \toprule
-    \textbf{Variables utilisées} & \textbf{$F_1$-macro} \\
-    \midrule
-    Avec moyenne (label dérivé de la moyenne) & \textcolor{bad}{$\approx 0{,}98$} \\
-    Moyenne seule & $0{,}82$ \\
-    Sans aucune information de moyenne & \textcolor{good}{$0{,}70$} \\
-    \bottomrule
-  \end{tabularx}
-  \end{center}
-  \footnotesize La performance s'effondre sans la moyenne : la difficulté réelle était masquée.
-\end{frame}
-
-% ── Correction + rigueur ────────────────────────────────────────────────────
-\begin{frame}{Correction et rigueur d'évaluation}
-  \textbf{Correction.} Vérité terrain redéfinie à partir du \alert{classement réel},
-  indépendant de la moyenne (corrélation $\approx -0{,}08$).
-
-  \vspace{0.5em}
-  \textbf{Trois garde-fous contre la fuite :}
-  \begin{enumerate}\small
-    \item normalisation \alert{par repli} (pipeline), jamais sur les données de test ;
-    \item \alert{jeu de test indépendant} (mis de côté avant l'entraînement) ;
-    \item \alert{indépendance cible--critères} : la variable source du label n'est pas un
-          critère.
-  \end{enumerate}
-  \vspace{0.4em}
-  \begin{block}{Leçon}
-    Une performance élevée n'a de valeur que si l'évaluation est méthodologiquement saine.
-  \end{block}
-\end{frame}
-
-% ── Performance honnête ─────────────────────────────────────────────────────
-\begin{frame}{Performance après correction (jeu de test)}
-  \begin{columns}[T]
-    \begin{column}{0.46\textwidth}
-      \begin{block}{Sur données jamais vues}
-        \begin{itemize}
-          \item Exactitude : $\approx 0{,}95$
-          \item $F_1$-macro : \textbf{$\approx 0{,}93$}
-        \end{itemize}
-      \end{block}
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      \includegraphics[width=\textwidth]{class_distribution.png}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.44\textwidth}
       \small
-      \begin{tabularx}{\textwidth}{Xc}
-        \toprule
-        \textbf{Classe} & \textbf{$F_1$} \\
-        \midrule
-        Non\_classé ($n=405$) & 0{,}99 \\
-        Bon ($n=210$) & 0{,}95 \\
-        Moyen ($n=140$) & 0{,}93 \\
-        Excellent ($n=60$, rare) & \textbf{0{,}93} \\
-        \bottomrule
-      \end{tabularx}
+      \textbf{815 candidatures} réelles.\\[4pt]
+      5 critères : Moyenne, Niveau de maths, Alternance, Licence EDN, Diplôme.\\[4pt]
+      Vérité terrain : le \textbf{classement réel} (4 classes ordonnées).\\[6pt]
+      \footnotesize Distribution \alert{déséquilibrée} : la classe Excellent est rare.
     \end{column}
   \end{columns}
-  \vspace{0.6em}
-  \footnotesize Performance \alert{équilibrée jusqu'à la classe rare}. Vérifiée par trois
-  tests anti-artefact (hors classe majoritaire, dossiers complets, complétude seule).
 \end{frame}
 
-% ── Explicabilité + capture ─────────────────────────────────────────────────
-\begin{frame}{Explicabilité : double justification}
+% ── Comparaison des modèles ─────────────────────────────────────────────────
+\begin{frame}{Comparaison des six modèles}
+  \begin{columns}[c]
+    \begin{column}{0.64\textwidth}
+      \includegraphics[width=\textwidth]{model_comparison.png}
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \small
+      Sélection automatique par \textbf{validation croisée}, puis optimisation
+      (RandomizedSearchCV).\\[6pt]
+      \textbf{Forêt aléatoire} retenue.\\[6pt]
+      \footnotesize Les modèles d'arbres dominent les modèles linéaires.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ── Performance sur le jeu de test ──────────────────────────────────────────
+\begin{frame}{Performance sur le jeu de test}
   \begin{columns}[c]
     \begin{column}{0.5\textwidth}
-      Chaque candidat dispose d'une justification :
-      \begin{itemize}\small
-        \item \textbf{TOPSIS} : contribution de chaque critère au score ;
-        \item \textbf{SHAP} : contribution de chaque variable à la prédiction du modèle.
-      \end{itemize}
-      \vspace{0.4em}
-      Le décideur comprend \emph{pourquoi} un candidat occupe un rang.
+      \centering
+      \includegraphics[width=0.95\textwidth]{confusion_matrix.png}
     \end{column}
     \begin{column}{0.5\textwidth}
-      \begin{center}
-        \includegraphics[width=\textwidth,height=5cm,keepaspectratio]{ui_shap.png}
-      \end{center}
+      \begin{block}{Données jamais vues}
+        \centering Exactitude \textbf{0,957} \quad|\quad $F_1$-macro \textbf{0,945}
+      \end{block}
+      \small
+      \begin{tabularx}{\textwidth}{Xcc}
+        \toprule
+        \textbf{Classe} & \textbf{$F_1$} & \textbf{$n$} \\
+        \midrule
+        Non\_classé & 0,98 & 81 \\
+        Bon & 0,95 & 42 \\
+        Excellent (rare) & \textbf{0,96} & 12 \\
+        Moyen & 0,89 & 28 \\
+        \bottomrule
+      \end{tabularx}
+      \vspace{4pt}
+      \footnotesize Équilibré \alert{jusqu'à la classe rare}.
     \end{column}
   \end{columns}
+\end{frame}
+
+% ── Pondération AHP (capture de l'application) ──────────────────────────────
+\begin{frame}{Pondération AHP (interface)}
+  \centering
+  \includegraphics[width=0.9\linewidth,height=0.80\textheight,keepaspectratio]{ui_ahp.png}
+
+  \vspace{0.3em}
+  \footnotesize Matrice de comparaison par paires : poids des critères et ratio de cohérence (CR).
+\end{frame}
+
+% ── Classement : sans ML vs avec ML (côte à côte) ───────────────────────────
+\begin{frame}{Classement : sans ML vs avec ML}
+  \begin{columns}[T]
+    \begin{column}{0.49\textwidth}\centering
+      \textbf{Sans ML} (TOPSIS seul)\\[2pt]
+      \includegraphics[width=\linewidth,height=5.3cm,keepaspectratio]{ui_resultats_topsis_seul.png}
+    \end{column}
+    \begin{column}{0.49\textwidth}\centering
+      \textbf{Avec ML} (fusion, $\alpha = 0{,}6$)\\[2pt]
+      \includegraphics[width=\linewidth,height=5.3cm,keepaspectratio]{ui_resultats_topsis_ml.png}
+    \end{column}
+  \end{columns}
+  \vspace{0.3em}
+  \centering
+  \begin{tikzpicture}[chip/.style={rounded corners, draw, inner sep=2pt,
+      font=\tiny, minimum height=0.55cm, text width=2.0cm, align=center}]
+    \node[chip, draw=good, fill=good!8] (a) {\textbf{\#648}\\ 7\,$\to$\,2 $\uparrow$};
+    \node[chip, draw=good, fill=good!8, right=0.2cm of a] (b) {\textbf{\#498}\\ hors top\,$\to$\,3 $\uparrow$};
+    \node[chip, draw=bad, fill=bad!8, right=0.2cm of b] (c) {\textbf{\#376}\\ 2\,$\to$\,hors top $\downarrow$};
+    \node[chip, draw=gray, fill=gray!10, right=0.2cm of c] (d) {\textbf{\#132}\\ 8\,$\to$\,8 \;(=)};
+  \end{tikzpicture}
+\end{frame}
+
+% ── Explicabilité ───────────────────────────────────────────────────────────
+\begin{frame}{Explicabilité : double justification}
+  \centering
+  \begin{columns}[c]
+    \begin{column}{0.49\textwidth}\centering
+      \includegraphics[width=\linewidth,height=6cm,keepaspectratio]{ui_shap_1.png}
+    \end{column}
+    \begin{column}{0.49\textwidth}\centering
+      \includegraphics[width=\linewidth,height=6cm,keepaspectratio]{ui_shap_2.png}
+    \end{column}
+  \end{columns}
+  \vspace{0.3em}
+  {\footnotesize Double justification : contributions par \textbf{critère} (TOPSIS) et par
+  \textbf{variable} (SHAP).}
+\end{frame}
+
+% ── Apport de l'IA (clé) ────────────────────────────────────────────────────
+\begin{frame}{Apport de l'apprentissage sur le classement}
+  \begin{columns}[c]
+    \begin{column}{0.62\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=5.2cm,keepaspectratio]{alpha_sweep.png}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \centering\small
+      \begin{tabularx}{\textwidth}{Xcc}
+        \toprule
+        & \textbf{Spear.} & \textbf{top-20\%} \\
+        \midrule
+        TOPSIS seul & 0,51 & 0,70 \\
+        Modèle seul & 0,54 & 0,48 \\
+        \textbf{Fusion} ($\alpha{=}0{,}6$) & 0,51 & \textbf{0,76} \\
+        \bottomrule
+      \end{tabularx}
+
+      \vspace{3pt}
+      {\scriptsize\itshape Spearman : classement réel vs score obtenu.}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.3em}
+  \begin{exampleblock}{Test de significativité (Spearman)}
+    \small $H_0 : \rho_s = 0$ \;;\;
+    $t = r_s\sqrt{(n{-}2)/(1{-}r_s^{2})}$ (Student, $n{-}2$ ddl) $\;\Rightarrow\;$
+    \alert{$p < 0{,}001 \ll \alpha = 0{,}05$} : lien \textbf{statistiquement significatif}.
+  \end{exampleblock}
 \end{frame}

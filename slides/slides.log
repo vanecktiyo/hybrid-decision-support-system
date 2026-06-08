@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.17)  1 JUN 2026 13:38
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.3.17)  8 JUN 2026 10:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1034,8 +1034,8 @@ orchid.sty)
 rounded.sty)
 (C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/beamer\beameroutertheme
 infolines.sty))
-LaTeX Font Info:    Trying to load font information for T1+lmss on input line 5
-3.
+LaTeX Font Info:    Trying to load font information for T1+lmss on input line 6
+8.
 
 (C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmss.fd
 File: t1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1050,24 +1050,24 @@ Package babel Info: 'french' activates 'french' shorthands.
 )
 \openout1 = `slides.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 68.
+LaTeX Font Info:    ... okay on input line 68.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -1129,57 +1129,57 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 fg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring OFF on input line 53.
+Package hyperref Info: Link coloring OFF on input line 68.
  (slides.out) (slides.out)
 \@outlinefile=\write5
 \openout5 = `slides.out'.
 
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  OT1/lmr/m/n --> OT1/cmss/m/n on input line 53.
+(Font)                  OT1/lmr/m/n --> OT1/cmss/m/n on input line 68.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/lmr/bx/n --> OT1/cmss/b/n on input line 53.
+(Font)                  OT1/lmr/bx/n --> OT1/cmss/b/n on input line 68.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  OT1/cmss/m/n --> OT1/lmss/m/n on input line 53.
+(Font)                  OT1/cmss/m/n --> OT1/lmss/m/n on input line 68.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/cmss/b/n --> OT1/lmss/b/n on input line 53.
+(Font)                  OT1/cmss/b/n --> OT1/lmss/b/n on input line 68.
 \symnumbers=\mathgroup6
 \sympureletters=\mathgroup7
 LaTeX Font Info:    Overwriting math alphabet `\mathrm' in version `normal'
-(Font)                  OT1/lmss/m/n --> T1/lmr/m/n on input line 53.
-LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 53.
+(Font)                  OT1/lmss/m/n --> T1/lmr/m/n on input line 68.
+LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/lmr/bx/n --> T1/lmss/b/n on input line 53.
+(Font)                  OT1/lmr/bx/n --> T1/lmss/b/n on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `bold'
-(Font)                  OT1/lmr/bx/n --> T1/lmss/b/n on input line 53.
-LaTeX Font Info:    Redeclaring math alphabet \mathsf on input line 53.
+(Font)                  OT1/lmr/bx/n --> T1/lmss/b/n on input line 68.
+LaTeX Font Info:    Redeclaring math alphabet \mathsf on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/lmss/m/n --> T1/lmss/m/n on input line 53.
+(Font)                  OT1/lmss/m/n --> T1/lmss/m/n on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/lmss/bx/n --> T1/lmss/m/n on input line 53.
-LaTeX Font Info:    Redeclaring math alphabet \mathit on input line 53.
+(Font)                  OT1/lmss/bx/n --> T1/lmss/m/n on input line 68.
+LaTeX Font Info:    Redeclaring math alphabet \mathit on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/lmr/m/it --> T1/lmss/m/it on input line 53.
+(Font)                  OT1/lmr/m/it --> T1/lmss/m/it on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/lmr/bx/it --> T1/lmss/m/it on input line 53.
-LaTeX Font Info:    Redeclaring math alphabet \mathtt on input line 53.
+(Font)                  OT1/lmr/bx/it --> T1/lmss/m/it on input line 68.
+LaTeX Font Info:    Redeclaring math alphabet \mathtt on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/lmtt/m/n --> T1/lmtt/m/n on input line 53.
+(Font)                  OT1/lmtt/m/n --> T1/lmtt/m/n on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/lmtt/m/n --> T1/lmtt/m/n on input line 53.
+(Font)                  OT1/lmtt/m/n --> T1/lmtt/m/n on input line 68.
 LaTeX Font Info:    Overwriting symbol font `numbers' in version `bold'
-(Font)                  T1/lmss/m/n --> T1/lmss/b/n on input line 53.
+(Font)                  T1/lmss/m/n --> T1/lmss/b/n on input line 68.
 LaTeX Font Info:    Overwriting symbol font `pureletters' in version `bold'
-(Font)                  T1/lmss/m/it --> T1/lmss/b/it on input line 53.
+(Font)                  T1/lmss/m/it --> T1/lmss/b/it on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathrm' in version `bold'
-(Font)                  OT1/lmss/b/n --> T1/lmr/b/n on input line 53.
+(Font)                  OT1/lmss/b/n --> T1/lmr/b/n on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `bold'
-(Font)                  T1/lmss/b/n --> T1/lmss/b/n on input line 53.
+(Font)                  T1/lmss/b/n --> T1/lmss/b/n on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  T1/lmss/m/n --> T1/lmss/b/n on input line 53.
+(Font)                  T1/lmss/m/n --> T1/lmss/b/n on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  T1/lmss/m/it --> T1/lmss/b/it on input line 53.
+(Font)                  T1/lmss/m/it --> T1/lmss/b/it on input line 68.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  T1/lmtt/m/n --> T1/lmtt/b/n on input line 53.
+(Font)                  T1/lmtt/m/n --> T1/lmtt/b/n on input line 68.
 
 (C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/translator\translator-b
 asic-dictionary-English.dict
@@ -1205,12 +1205,12 @@ Dictionary: translator-numbers-dictionary, Language: English
 heorem-dictionary-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
 )
-LaTeX Info: Redefining \degres on input line 53.
+LaTeX Info: Redefining \degres on input line 68.
  (slides.nav)
-<logo.png, id=44, 593.96906pt x 124.21407pt>
+<logo.png, id=48, 593.96906pt x 124.21407pt>
 File: logo.png Graphic file (type png)
 <use logo.png>
-Package pdftex.def Info: logo.png  used on input line 61.
+Package pdftex.def Info: logo.png  used on input line 76.
 (pdftex.def)             Requested size: 163.26495pt x 34.14322pt.
  [1
 
@@ -1219,122 +1219,148 @@ r/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc} <./logo.png>] (sl
 ides.toc) [2
 
 ]
-(frames/01_contexte.tex
-LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <10.95> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 23.
- [3
+(frames/01_contexte.tex [3
+
+] [4
+
+] (slides.toc) [5
+
+] [6
 
 ]
+(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmss.fd)
+(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\omllmm.fd)
+(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\omslmsy.fd)
+(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\omxlmex.fd)
+(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
 LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <9> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 39.
- [4
+(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 85.
 
-] [5
+[7
+
+{C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}
+]) (frames/02_methode.tex (slides.toc) [8
 
 ]
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10> on input line 21.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <7> on input line 21.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <5> on input line 21.
 LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <10> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 99.
- [6
-
-]) (frames/02_methode.tex [7
-
-]
-LaTeX Font Info:    Trying to load font information for OT1+lmss on input line 
-52.
-
-(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmss.fd
-File: ot1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-LaTeX Font Info:    Trying to load font information for OML+lmm on input line 5
-2.
-
-(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\omllmm.fd
-File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-52.
-
-(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\omslmsy.fd
-File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-52.
-
-(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\omxlmex.fd
-File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 52.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 52.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 52.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 52.
-
-
-(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
-File: umsa.fd 2013/01/14 v3.01 AMS symbols A
-)
-LaTeX Font Info:    Trying to load font information for U+msb on input line 52.
-
-
-(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
-File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-)
+(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 21.
 LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <7> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 52.
+(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 21.
 LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <5> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 52.
-
-[8
+(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 21.
+ [9
 
 {C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}{C:/
 Users/dagar/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.enc}{C:/
-Users/dagar/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}]
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 70.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 70.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 70.
-LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <8> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 70.
-LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <6> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 70.
+Users/dagar/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.enc}] [1
+0
 
-[9
-
-{C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.enc}
-] [10
+] [11
 
 ]
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 1
-14.
- (C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
+03.
+
+(C:\Users\dagar\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-[11
-
-]) (frames/03_resultats.tex [12
-
-] [13
-
-] [14
-
-] [15
+LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <9> not available
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 103.
+ [12
 
 ]
-<ui_shap.png, id=217, 889.07156pt x 558.58687pt>
-File: ui_shap.png Graphic file (type png)
-<use ui_shap.png>
-Package pdftex.def Info: ui_shap.png  used on input line 108.
-(pdftex.def)             Requested size: 216.73236pt x 136.16885pt.
+[13
+
+]) (frames/03_resultats.tex (slides.toc) [14
+
+]
+<images/class_distribution.png, id=235, 476.982pt x 260.172pt>
+File: images/class_distribution.png Graphic file (type png)
+<use images/class_distribution.png>
+Package pdftex.def Info: images/class_distribution.png  used on input line 17.
+(pdftex.def)             Requested size: 242.75pt x 132.41202pt.
+ [15
+
+ <./images/class_distribution.png>]
+<images/model_comparison.png, id=244, 520.344pt x 274.626pt>
+File: images/model_comparison.png Graphic file (type png)
+<use images/model_comparison.png>
+Package pdftex.def Info: images/model_comparison.png  used on input line 33.
+(pdftex.def)             Requested size: 277.42952pt x 146.42688pt.
  [16
 
- <./ui_shap.png>])
-(frames/04_conclusion.tex [17
+ <./images/model_comparison.png>]
+<images/confusion_matrix.png, id=253, 404.712pt x 346.896pt>
+File: images/confusion_matrix.png Graphic file (type png)
+<use images/confusion_matrix.png>
+Package pdftex.def Info: images/confusion_matrix.png  used on input line 61.
+(pdftex.def)             Requested size: 205.90425pt x 176.49115pt.
+ [17
 
-] [18
+ <./images/confusion_matrix.png>]
+<images/ui_ahp.png, id=274, 809.27344pt x 453.94594pt>
+File: images/ui_ahp.png Graphic file (type png)
+<use images/ui_ahp.png>
+Package pdftex.def Info: images/ui_ahp.png  used on input line 70.
+(pdftex.def)             Requested size: 346.58542pt x 194.41023pt.
+ [18
+
+ <./images/ui_ahp.png>]
+<images/ui_resultats_topsis_seul.png, id=283, 706.43925pt x 509.5035pt>
+File: images/ui_resultats_topsis_seul.png Graphic file (type png)
+<use images/ui_resultats_topsis_seul.png>
+Package pdftex.def Info: images/ui_resultats_topsis_seul.png  used on input lin
+e 93.
+(pdftex.def)             Requested size: 209.08765pt x 150.79979pt.
+<images/ui_resultats_topsis_ml.png, id=284, 860.46469pt x 639.89063pt>
+File: images/ui_resultats_topsis_ml.png Graphic file (type png)
+<use images/ui_resultats_topsis_ml.png>
+Package pdftex.def Info: images/ui_resultats_topsis_ml.png  used on input line 
+93.
+(pdftex.def)             Requested size: 202.7738pt x 150.79416pt.
+ [19
+
+ <./images/ui_resultats_topsis_seul.png> <./images/ui_resultats_topsis_ml.png>]
+<images/ui_shap_1.png, id=296, 695.59875pt x 515.526pt>
+File: images/ui_shap_1.png Graphic file (type png)
+<use images/ui_shap_1.png>
+Package pdftex.def Info: images/ui_shap_1.png  used on input line 109.
+(pdftex.def)             Requested size: 212.40674pt x 157.42006pt.
+<images/ui_shap_2.png, id=297, 704.6325pt x 513.117pt>
+File: images/ui_shap_2.png Graphic file (type png)
+<use images/ui_shap_2.png>
+Package pdftex.def Info: images/ui_shap_2.png  used on input line 109.
+(pdftex.def)             Requested size: 212.40205pt x 154.67226pt.
+ [20
+
+ <./images/ui_shap_1.png> <./images/ui_shap_2.png>]
+<images/alpha_sweep.png, id=307, 462.528pt x 289.08pt>
+File: images/alpha_sweep.png Graphic file (type png)
+<use images/alpha_sweep.png>
+Package pdftex.def Info: images/alpha_sweep.png  used on input line 141.
+(pdftex.def)             Requested size: 236.726pt x 147.95375pt.
+
+Underfull \hbox (badness 10000) in paragraph at lines 141--141
+[]|\T1/lmss/bx/n/10 Fusion
+ []
+
+[21
+
+ <./images/alpha_sweep.png>]) (frames/04_conclusion.tex (slides.toc)
+[22
+
+] [23
+
+] (slides.toc) [24
+
+] [25
 
 ])
 \tf@nav=\write6
@@ -1352,16 +1378,16 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `slides.out' has not changed.
-(rerunfilecheck)             Checksum: 9197813BDD664DDE858CEB1D796A7C98;622.
+(rerunfilecheck)             Checksum: 34A80C5EB55FAA7ED19804FAF87184E9;700.
  ) 
 Here is how much of TeX's memory you used:
- 28696 strings out of 467871
- 578287 string characters out of 5418376
- 960580 words of memory out of 5000000
- 56927 multiletter control sequences out of 15000+600000
- 713616 words of font info for 97 fonts, out of 8000000 for 9000
+ 29049 strings out of 467871
+ 585754 string characters out of 5418376
+ 968945 words of memory out of 5000000
+ 57255 multiletter control sequences out of 15000+600000
+ 716380 words of font info for 98 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 128i,14n,123p,383b,970s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 128i,15n,123p,383b,958s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmex10.pf
 b><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi10.pf
 b><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmss10.pf
@@ -1373,12 +1399,14 @@ b><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsso10.p
 fb><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsso8.p
 fb><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsso9.p
 fb><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.p
-fb><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pf
-b><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb
->
-Output written on slides.pdf (18 pages, 434179 bytes).
+fb><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy6.pf
+b><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb
+><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb
+><C:/Users/dagar/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symb
+ols/msam10.pfb>
+Output written on slides.pdf (25 pages, 902309 bytes).
 PDF statistics:
- 308 PDF objects out of 1000 (max. 8388607)
- 42 named destinations out of 1000 (max. 500000)
- 351 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 454 PDF objects out of 1000 (max. 8388607)
+ 57 named destinations out of 1000 (max. 500000)
+ 387 words of extra memory for PDF output out of 10000 (max. 10000000)
 

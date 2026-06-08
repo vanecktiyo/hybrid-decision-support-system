@@ -1,27 +1,39 @@
-\section{Perspectives et conclusion}
+\section{Limites et perspectives}
 
-% ── Perspectives ────────────────────────────────────────────────────────────
-\begin{frame}{Perspectives}
-  Le prototype valide la faisabilité. L'objectif : une application
-  \alert{multi-utilisateur à grande échelle}.
-  \vspace{0.5em}
-  \begin{itemize}
-    \item \textbf{Base de données} : intégrité, requêtes, accès concurrents (préalable).
-    \item \textbf{Authentification et rôles} : responsable, administrateur.
-    \item \textbf{Multi-utilisateur} : cloisonnement des données par filière.
-    \item \textbf{Traçabilité et audit} : journalisation des décisions.
-    \item \textbf{Validation élargie} : autres jeux de données et domaines.
-  \end{itemize}
+% ── Limites et perspectives : schéma limite -> perspective ──────────────────
+\begin{frame}{Limites et perspectives}
+  \centering
+  \begin{tikzpicture}[
+    lim/.style={rectangle, rounded corners, draw=bad, fill=bad!6, text width=4.0cm,
+                align=center, inner sep=5pt, minimum height=1.25cm, font=\small},
+    per/.style={rectangle, rounded corners, draw=good, fill=good!8, text width=4.2cm,
+                align=center, inner sep=5pt, minimum height=1.25cm, font=\small},
+    arr/.style={-{Latex[length=3mm]}, very thick, draw=primary},
+    node distance=0.55cm
+  ]
+    \node[lim] (l1) {Un seul jeu de données};
+    \node[lim, below=of l1] (l2) {Dépendance aux décisions passées \emph{(supervisé)}};
+    \node[lim, below=of l2] (l3) {Prototype mono-utilisateur};
+    \node[per, right=2.4cm of l1] (p1) {Validation élargie \& en conditions réelles};
+    \node[per, right=2.4cm of l2] (p2) {Approches non supervisées \emph{(clustering)}};
+    \node[per, right=2.4cm of l3] (p3) {Déploiement multi-utilisateur \emph{(BDD, auth, audit)}};
+    \node[font=\large\bfseries, text=bad, above=0.3cm of l1] {Limites};
+    \node[font=\large\bfseries, text=good, above=0.3cm of p1] {Perspectives};
+    \draw[arr] (l1) -- (p1);
+    \draw[arr] (l2) -- (p2);
+    \draw[arr] (l3) -- (p3);
+  \end{tikzpicture}
 \end{frame}
 
 % ── Conclusion ──────────────────────────────────────────────────────────────
+\section{Conclusion}
 \begin{frame}{Conclusion}
   \begin{itemize}
-    \item Un système \textbf{hybride} AHP + TOPSIS + apprentissage, \alert{générique} et
+    \item Système \textbf{hybride} AHP + TOPSIS + apprentissage, \alert{générique} et
           \alert{explicable}.
-    \item Contribution centrale : la \alert{rigueur méthodologique de l'évaluation}
-          (détection et correction d'une fuite de données : 98\% illusoire $\rightarrow$
-          93\% honnête).
+    \item Modèle fiable sur données non vues : \textbf{$F_1$-macro $\approx 0{,}95$}.
+    \item Apport mesuré de l'IA : la fusion \alert{améliore la présélection}
+          (top-20\% : $0{,}70 \to 0{,}76$) sans dégrader l'ordre global.
     \item Classement \textbf{transparent et justifiable}, conforme au sujet.
   \end{itemize}
   \vspace{0.8em}

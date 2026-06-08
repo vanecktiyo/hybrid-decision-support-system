@@ -14,6 +14,7 @@
 \usepackage{tabularx}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc,fit,backgrounds}
+\graphicspath{{images/}{./}}
 
 % ── Thème ───────────────────────────────────────────────────────────────────
 \usetheme{Madrid}
@@ -25,22 +26,36 @@
 \definecolor{good}{HTML}{0A7C42}
 \definecolor{bad}{HTML}{B3261E}
 
+% Symboles oui/non pour les tableaux comparatifs
+\newcommand{\cmark}{\textcolor{good}{\checkmark}}
+\newcommand{\xmark}{\textcolor{bad}{\ensuremath{\times}}}
+
 \setbeamercolor{structure}{fg=primary}
 \setbeamercolor{frametitle}{bg=primary,fg=white}
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{caption}[numbered]
 \setbeamerfont{frametitle}{size=\large}
 
-% Pied de page compact
+% Pied de page compact : section courante à gauche, n° de slide à droite
 \setbeamertemplate{footline}{%
   \hbox{%
     \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.4ex,dp=1ex,leftskip=1em]{author in head/foot}%
       \scriptsize V. DAGAR TIYO%
     \end{beamercolorbox}%
     \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.4ex,dp=1ex,rightskip=1em]{title in head/foot}%
-      \hfill\scriptsize Classement intelligent de candidatures \quad \insertframenumber/\inserttotalframenumber%
+      \hfill\scriptsize \insertsection \quad \insertframenumber/\inserttotalframenumber%
     \end{beamercolorbox}%
   }%
+}
+
+% Diapo de section : réaffiche le plan en surlignant la section courante.
+% Sautée pour la 1re section (déjà couverte par la diapo « Plan » initiale).
+\AtBeginSection[]{%
+  \ifnum\value{section}>1
+    \begin{frame}{Plan}
+      \tableofcontents[currentsection]
+    \end{frame}%
+  \fi
 }
 
 % ── Métadonnées ─────────────────────────────────────────────────────────────
@@ -48,7 +63,7 @@
 \subtitle{Intégration de l'AHP, de TOPSIS et de l'apprentissage automatique explicable}
 \author[V. DAGAR TIYO]{Vaneck Duramel DAGAR TIYO}
 \institute[UCL]{Université Catholique de Lille\\ \footnotesize Encadrants : Faiza AJMI \& Jalal POSSIK}
-\date{\today}
+\date{10 juin 2026}
 
 \begin{document}
 
